@@ -5,9 +5,11 @@ A shopping storefront with an optional AI product comparison feature.
 Shoppers browse, pick a product and check out directly. Alternatively they can compare up to
 three products using specifications, ratings, review insights and their own stated preferences.
 
-**This repository currently contains the project scaffold only.** There is no catalog, no
-search, no cart, no checkout and no AI integration yet — just a placeholder homepage that
-proves the toolchain works.
+**Built so far:** a demo catalog, search with filtering and sorting, and product detail pages.
+**Not built:** cart, checkout, product comparison, AI explanations, authentication. You will not
+find buttons for those — an absence is clearer than a control that does nothing.
+
+All products, prices, images and reviews are invented for this prototype.
 
 ## Requirements
 
@@ -56,10 +58,24 @@ Next.js App Router with TypeScript and Tailwind CSS v4.
 
 ```
 src/app/
-  layout.tsx    root layout
-  globals.css   Tailwind entry point and theme tokens
-  page.tsx      placeholder homepage
+  layout.tsx            shell, footer, metadata
+  globals.css           Tailwind entry point and theme tokens
+  page.tsx              homepage
+  not-found.tsx         404
+  search/page.tsx       results, filters, sorting
+  product/[slug]/       product detail
+src/components/         presentational pieces used by more than one page
+src/lib/                types and pure helpers, safe on client or server
+src/server/
+  catalog.ts            the only way the app reads catalog data
+  demo-data.ts          the demo catalog itself
+scripts/
+  generate-product-images.py   generates everything in public/images/
 ```
+
+`src/server/catalog.ts` is the seam. Every function is async and specific to what the
+storefront asks for. Moving to Supabase means rewriting those function bodies; no page changes.
+It is deliberately not a generic repository or query builder.
 
 Backend work will use **Next.js route handlers** inside `src/app/`. There is no separate backend
 service and none is planned. No placeholder API routes exist yet — they will be added when
@@ -68,12 +84,45 @@ something actually calls them.
 Shared components, product types and server utilities will get their own directories under
 `src/` at the point where there is real code to put in them, rather than being created empty now.
 
+## Design decisions
+
+Recon (see `recon/notes.md`) left real questions open. Rather than block, each was decided and
+recorded here. These are our choices, not observations of any other retailer.
+
+| Decision | Reasoning |
+|---|---|
+| Clothing varies by **colour and size**; headphones by **colour** only | Our design decision. No clothing product page was ever captured, so there was nothing to copy. |
+| Variants, not products, carry **price and availability** | Recon did evidence per-variant pricing, and it is the only model that survives a size surcharge. |
+| Money is **integer cents**, formatted once in `src/lib/format.ts` | Floats do not survive arithmetic on prices. |
+| **Rating count and written-review count are separate** | Most people who rate never write anything. Collapsing them overstates written feedback. |
+| Rating averages are **derived from the histogram** | The summary cannot contradict itself. |
+| Reviews belong to a **product** and optionally name a purchased variant | Matches what recon showed: reviews pool across variants while keeping attribution. |
+| Search, filter, sort and variant selection all live in **URL parameters** | Results are shareable, the back button works, and no client JavaScript is needed. |
+| **No cart, checkout or comparison controls anywhere** | Those features do not exist yet. |
+| Sort "Featured" means **most-rated first** | We have no merchandising signal; popularity is an honest stand-in and is labelled as a sort, not a recommendation. |
+| A product matches a price filter when **any variant** falls in range | The shopper can select that variant. |
+| Specs reading "None" are **excluded from search text** | Otherwise searching "noise cancelling" returns every pair of headphones, including those that say "None". |
+
+### Search behaviour, stated precisely
+
+Terms are split on whitespace and AND-ed; each must appear in the product's title, brand,
+summary, category or specifications, matched at a **word boundary with prefix matching**. So
+"headphone" finds "headphones", and "open" finds "open-back" — but it also finds "opening",
+which is the cost of prefix matching. There is no stemming, phrase matching, typo tolerance or
+relevance ranking. It is a catalog filter, not a search engine.
+
+### Still open
+
+Checkout was never observed during recon, and no clothing product page was captured. Neither
+blocks this step. Both are recorded in `recon/notes.md` §5.2b against the step that needs them.
+
 ### Planned sequence
 
 | Step | Scope | Status |
 |---|---|---|
-| 1 | Scaffold: App Router, TypeScript, Tailwind, ESLint, placeholder homepage | done |
-| 2 | Catalog, search, product details, cart, simulated checkout | not started |
+| 1 | Scaffold: App Router, TypeScript, Tailwind, ESLint | done |
+| 2a | Catalog, search, product details | done |
+| 2b | Cart and simulated checkout | not started |
 | 3 | Optional comparison for up to three products | not started |
 | 4 | Review-confidence and personal-suitability explanations via DeepSeek | not started |
 
@@ -83,6 +132,16 @@ browse → product → checkout must always work without it.
 Review confidence (how strongly the review evidence supports a conclusion) and personal
 suitability (how well a product fits this shopper's stated preferences) are two separate
 assessments and are kept structurally separate throughout.
+
+## Demo data and images
+
+Everything in `src/server/demo-data.ts` is invented: brands are fictional and were chosen not to
+resemble real ones, and the reviews are written content, not customer feedback. The storefront
+says so on every page — a banner in the header and a notice above the reviews.
+
+Every image in `public/images/` is an SVG generated by `scripts/generate-product-images.py`.
+Nothing was downloaded or derived from a third-party image, so the set carries no attribution or
+licence obligation. See `public/images/README.md`.
 
 ## Exploration notes
 

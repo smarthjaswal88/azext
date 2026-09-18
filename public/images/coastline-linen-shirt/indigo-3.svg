@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800" role="img">
+  <rect width="800" height="800" fill="#eceaea"/>
+  <g>
+    <rect x="150" y="150" width="500" height="500" rx="34" fill="#38455f"/>
+    <path d="M 186 150 L 186 650" stroke="#70798c" stroke-width="7" opacity="0.28"/><path d="M 228 150 L 228 650" stroke="#70798c" stroke-width="7" opacity="0.28"/><path d="M 270 150 L 270 650" stroke="#70798c" stroke-width="7" opacity="0.28"/><path d="M 312 150 L 312 650" stroke="#70798c" stroke-width="7" opacity="0.28"/><path d="M 354 150 L 354 650" stroke="#70798c" stroke-width="7" opacity="0.28"/><path d="M 396 150 L 396 650" stroke="#70798c" stroke-width="7" opacity="0.28"/><path d="M 438 150 L 438 650" stroke="#70798c" stroke-width="7" opacity="0.28"/><path d="M 480 150 L 480 650" stroke="#70798c" stroke-width="7" opacity="0.28"/><path d="M 522 150 L 522 650" stroke="#70798c" stroke-width="7" opacity="0.28"/><path d="M 564 150 L 564 650" stroke="#70798c" stroke-width="7" opacity="0.28"/><path d="M 606 150 L 606 650" stroke="#70798c" stroke-width="7" opacity="0.28"/>
+    <rect x="150" y="150" width="500" height="500" rx="34" fill="none" stroke="#232b3b" stroke-width="12" opacity="0.5"/>
+    <circle cx="560" cy="560" r="44" fill="#232b3b" opacity="0.75"/>
+  </g>
+</svg>
