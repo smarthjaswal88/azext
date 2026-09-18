@@ -1,6 +1,7 @@
 # Amazon Shopper-Experience Recon
 
-**Status: AWAITING MANUAL EXPLORATION ASSETS.**
+**Status: AWAITING MANUAL EXPLORATION ASSETS.** (Review attempted 2026-09-18 — no assets
+found; see 1.1.)
 
 Agent-side exploration is blocked (section 2). Smarth Jaswal is exploring Amazon manually and
 will supply screenshots and observations under `recon/`.
@@ -14,6 +15,15 @@ from memory or inference. Section 4 will be filled in only from the supplied evi
 ## 1. Pages and flows actually explored
 
 **None.**
+
+### 1.1 Asset review log
+
+| Date | Action | Result |
+|---|---|---|
+| 2026-09-18 | Reviewed `recon/` for supplied exploration assets | **Nothing found.** `recon/` was byte-identical to commit `37c0ba8`: only `notes.md` and `screenshots/README.md`, both agent-authored. No screenshots, no observation files, anywhere in the repository. |
+
+Section 4 was therefore left empty. No observation was written, because there was no evidence
+to write one from.
 
 | Flow | URL attempted | Result |
 |---|---|---|
