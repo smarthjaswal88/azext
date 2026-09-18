@@ -6,9 +6,17 @@
  *     a request the shopper did not make twice;
  *   - a hard timeout, so a hung connection cannot hold a budget reservation
  *     open indefinitely;
- *   - JSON output requested explicitly, and reasoning explicitly disabled;
+ *   - JSON output requested explicitly, and thinking explicitly disabled;
  *   - the API key is read at call time, sent in the Authorization header, and
  *     never logged, returned, or included in any error message.
+ *
+ * Every outcome reports how sure we are that the provider billed for it. Only
+ * "not_sent" — a request that never left this process — is treated as free.
+ * Anything else is charged against the budget, because assuming a failed call
+ * was free is how a budget quietly stops being a budget.
+ *
+ * Docs: https://api-docs.deepseek.com/api/create-chat-completion
+ *       https://api-docs.deepseek.com/guides/json_mode
  */
 
 import {
@@ -24,17 +32,22 @@ export interface DeepSeekUsage {
   completionTokens?: number;
 }
 
+/** How confident we are that DeepSeek charged for the attempt. */
+export type BillingCertainty = "not_sent" | "uncertain" | "billed";
+
 export type DeepSeekResult =
   | { status: "ok"; content: string; usage: DeepSeekUsage; finishReason?: string }
   | { status: "timeout" }
-  | { status: "failed"; detail: string; billed: boolean };
+  | { status: "failed"; detail: string; billing: BillingCertainty };
 
 export async function requestGuidanceCompletion(
   systemPrompt: string,
   userPayload: string,
 ): Promise<DeepSeekResult> {
   const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
-  if (!apiKey) return { status: "failed", detail: "no api key", billed: false };
+  // Nothing was sent, so nothing can have been charged. This is the only
+  // outcome that releases a reservation.
+  if (!apiKey) return { status: "failed", detail: "no api key", billing: "not_sent" };
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -58,20 +71,23 @@ export async function requestGuidanceCompletion(
         max_tokens: MAX_OUTPUT_TOKENS,
         temperature: 0.2,
         stream: false,
-        // The chosen model is the non-reasoning one; this switches thinking off
-        // explicitly rather than depending on the default.
+        // deepseek-flash DOES support thinking — the reasoning guide shows it
+        // used with {"type": "enabled"} — so this is a real switch, not a
+        // formality. Thinking tokens bill as output, which would blow through
+        // the reservation. The API reference lists "enabled" and "disabled" as
+        // the allowed values.
         thinking: { type: "disabled" },
       }),
     });
 
     if (!response.ok) {
-      // A non-2xx may still have been billed (for example a content filter), so
-      // the caller settles rather than releases unless we know otherwise.
-      const billed = response.status >= 500 ? false : response.status !== 429;
+      // A rejected request may still have generated and billed tokens — a
+      // content filter, for instance, stops after generation. We cannot tell
+      // from the status code, so this counts against the budget.
       return {
         status: "failed",
         detail: `provider returned ${response.status}`,
-        billed,
+        billing: "uncertain",
       };
     }
 
@@ -80,15 +96,25 @@ export async function requestGuidanceCompletion(
       usage?: { prompt_tokens?: number; completion_tokens?: number };
     };
 
+    const finishReason = body.choices?.[0]?.finish_reason;
     const content = body.choices?.[0]?.message?.content;
+
+    // The JSON output guide notes the API "may occasionally return empty
+    // content". Tokens were still produced, so it is billed.
     if (typeof content !== "string" || content.length === 0) {
-      return { status: "failed", detail: "empty completion", billed: true };
+      return { status: "failed", detail: "empty completion", billing: "billed" };
+    }
+
+    // finish_reason "length" means the answer hit max_tokens, so the JSON is
+    // cut off mid-string and will not parse. Billed in full.
+    if (finishReason === "length") {
+      return { status: "failed", detail: "output truncated", billing: "billed" };
     }
 
     return {
       status: "ok",
       content,
-      finishReason: body.choices?.[0]?.finish_reason,
+      finishReason,
       usage: {
         promptTokens: body.usage?.prompt_tokens,
         completionTokens: body.usage?.completion_tokens,
@@ -96,14 +122,17 @@ export async function requestGuidanceCompletion(
     };
   } catch (cause) {
     if (cause instanceof Error && cause.name === "AbortError") {
-      // Aborted client-side; the provider may still have billed it.
+      // Aborted from our side. The provider may well have completed and billed
+      // it, so the caller keeps the reservation.
       return { status: "timeout" };
     }
     return {
       status: "failed",
       // Never interpolate anything that could carry the key.
       detail: "network error",
-      billed: false,
+      // A connection that dropped mid-flight may still have reached the
+      // provider. Uncertain, so not free.
+      billing: "uncertain",
     };
   } finally {
     clearTimeout(timer);

@@ -210,12 +210,36 @@ does not exist would be worse than no panel.
 Optional, inside the comparison page only. Everything else — browsing, search, cart, checkout —
 works whether or not it is switched on.
 
-### Model
+### Model, checked against the documentation
 
-`deepseek-flash`, the non-reasoning chat model and the cheaper of DeepSeek's two offerings.
-Reasoning is switched off explicitly in the request (`thinking: { type: "disabled" }`) rather
-than left to the default. Requests use `response_format: { type: "json_object" }`,
-`max_tokens: 900`, `temperature: 0.2`, no streaming, and a 25-second timeout.
+Verified against DeepSeek's own docs without calling the inference API:
+
+| Checked | Source |
+|---|---|
+| Model IDs and prices | <https://api-docs.deepseek.com/quick_start/pricing> |
+| Request and response fields | <https://api-docs.deepseek.com/api/create-chat-completion> |
+| JSON output requirements | <https://api-docs.deepseek.com/guides/json_mode> |
+| Thinking mode | <https://api-docs.deepseek.com/guides/reasoning_model> |
+| Token counting | <https://api-docs.deepseek.com/quick_start/token_usage> |
+
+**`deepseek-flash`**, the cheaper of the two published models. Requests use
+`response_format: { type: "json_object" }`, `max_tokens: 900`, `temperature: 0.2`, no
+streaming, `thinking: { type: "disabled" }`, and a 25-second timeout.
+
+Two corrections came out of that check:
+
+- An earlier note here called `deepseek-flash` "the non-reasoning model". **That was wrong.**
+  The reasoning guide shows `deepseek-flash` used with `thinking: {"type": "enabled"}`, so it
+  supports thinking and simply does not use it unless asked. Disabling it is therefore a real
+  cost control — thinking tokens bill as output — not a formality.
+- The JSON output guide requires the literal word "json" in the prompt *and* an example of the
+  shape. The example was there; the lowercase word was not, and has been added. The same guide
+  warns the API "may occasionally return empty content", which is now handled as a billed
+  failure, as is a `finish_reason` of `length` (truncated, unparseable JSON).
+
+Prices quoted from the pricing page, per 1M tokens: `deepseek-flash` input cache-miss $0.15
+off-peak / $0.30 peak, cache-hit $0.003 / $0.006, output $0.60 / $1.20. Peak is 01:00–04:00 and
+06:00–10:00 UTC, Monday to Friday.
 
 ### Spend controls
 
@@ -226,7 +250,7 @@ Paid requests are off by default and stay off until **all four** of these hold:
 | `AI_LIVE_REQUESTS=enabled` | An explicit switch, so no deployment starts spending by accident. |
 | `DEEPSEEK_API_KEY` set | Obvious. |
 | Supabase configured | The budget ledger and rate limits live there. |
-| A row in `ai_budget` | Migration `0003` inserts one at **$5.00**. |
+| A row in `ai_budget` | Migrations `0003`/`0004` leave one at **$0.50**. |
 
 On top of that:
 
@@ -238,17 +262,43 @@ On top of that:
   excerpts each; preference text is cut at 280 characters; the whole body is rejected above 8 KB.
 - **Results are cached** in Supabase by model, catalog version, products, chosen variants and
   normalised preferences. An identical question is never paid for twice.
+- **Concurrent duplicates are refused.** A cache only helps once an answer exists — two
+  identical questions asked at the same moment would both miss it and both be billed. The
+  in-flight check lives inside the same SQL function that reserves budget, so the check and the
+  reservation cannot interleave. The second caller gets a retryable 409. A reservation stops
+  blocking after two minutes, so a crashed request cannot wedge a cache key.
 - **Per-visitor rate limits**: 6 per hour, 20 per day, keyed by a salted hash of IP and user
   agent. Neither the IP nor the user agent is stored.
 
 ### How the budget actually works, and what it does not guarantee
 
-Cost is tracked in integer micro-dollars. Before a call, the route reserves an estimate
-computed from the prompt length and the output ceiling, priced at DeepSeek's **peak** rates
-(the more expensive tier) so the reservation lands above the true cost. The reservation is
-recorded in `ai_usage` as `reserved`. Afterwards it is replaced with the real cost derived from
-the token usage the API reports. Committed spend is the sum of settled actuals plus outstanding
-reservations, so two concurrent requests cannot both slip under the ceiling.
+The ceiling is **$0.50**, held in `ai_budget.limit_micros`. Nothing in this schema resets,
+replenishes or tops it up — there is no scheduled job and no code path that raises it. It moves
+only when a human runs:
+
+```sql
+select public.ai_set_budget_limit(2000000);  -- $2.00
+select public.ai_budget_status();            -- what is committed so far
+```
+
+Migration `0004` lowers the earlier `0003` default from $5.00 to $0.50, and only if the value is
+still that untouched default — an operator who has set their own ceiling keeps it. It does not
+touch `ai_usage`, so every existing spend record is preserved.
+
+Cost is tracked in integer micro-dollars. Before a call the route reserves an estimate covering
+**the bounded input it is about to send plus the full `max_tokens` output ceiling** — never an
+expected output length — priced at DeepSeek's **peak, cache-miss** rates. The input estimate uses
+1/3 token per character against the documented "1 English character ≈ 0.3 token", then a further
+1.3× safety factor. An off-peak call therefore costs roughly half what was set aside.
+
+The reservation is recorded in `ai_usage` as `reserved`, then replaced with the real cost from
+the token usage the API reports. Committed spend is settled actuals plus outstanding
+reservations, so concurrent requests cannot both slip under the ceiling.
+
+**Failures keep their reservation.** The only outcome treated as free is a request that never
+left the process (no API key). A timeout, a non-2xx, a dropped connection, an empty completion
+or truncated output all keep the full reservation, because a request that may have reached
+DeepSeek may have been billed, and assuming otherwise is how a budget stops being one.
 
 Honest limitations — this bounds spend, it is not a hard financial guarantee:
 
@@ -257,8 +307,10 @@ Honest limitations — this bounds spend, it is not a hard financial guarantee:
 - A call can be billed by DeepSeek while the settle write fails (a crash between the two). The
   reservation then stands, which errs towards under-spending, but the recorded figure is an
   estimate rather than the invoice.
-- A timeout is recorded as **billed**, because the provider may have charged for it. This can
-  over-count.
+- Uncertain failures are recorded as **billed at the reserved estimate**, which deliberately
+  over-counts rather than under-counts.
+- The in-flight duplicate check covers concurrent requests through this route. It does not
+  coordinate with anything else using the same key.
 - It only knows about requests made through this route. Spend from anywhere else on the same
   key is invisible to it.
 - **A request count is not a dollar cap.** The cap is on estimated dollars; request limits are a
@@ -301,9 +353,15 @@ it describes differences and picks no winner.
 
 - Review text and preference text go into a JSON payload the system prompt identifies as **data,
   not instructions**.
-- Every review-based claim must cite review ids. Output is validated against the ids actually
-  sent; a citation we did not supply is dropped, and cited reviews are shown inline so a shopper
-  can read the evidence behind a claim.
+- Every review-based claim must cite review ids, and output is validated against the ids
+  actually sent — a citation we did not supply is dropped.
+
+  **What that check does not establish.** A valid id proves the referenced review exists and was
+  in evidence. It does **not** prove the sentence beside it is supported by that review's
+  content: nothing here reads the review and tests the claim against it, and a model can cite a
+  real review and still describe it wrongly. The check is a floor against invented sources. The
+  cited reviews are rendered in full next to the claim precisely because the reader, not the
+  validator, is what closes that gap.
 - Budget comparisons are computed in integer cents in `src/server/ai/guidance.ts` and handed to
   the model as booleans. It is told not to do arithmetic on prices.
 - If no clothing size is chosen, the price is marked provisional everywhere it appears and no

@@ -180,6 +180,20 @@ export async function POST(request: Request) {
       { status: 429 },
     );
   }
+  if (begun.status === "duplicate_in_flight") {
+    // An identical question is already being paid for. The cache only helps
+    // once an answer exists; without this check two simultaneous misses would
+    // both call the provider and both be billed.
+    return NextResponse.json(
+      {
+        error: "duplicate_in_flight",
+        message:
+          "The same comparison is already being looked at. Give it a moment and try again.",
+        retryable: true,
+      },
+      { status: 409 },
+    );
+  }
   if (begun.status !== "ok") {
     return NextResponse.json(
       { error: "ai_disabled", message: "Guidance is unavailable right now.", retryable: false },
@@ -190,7 +204,8 @@ export async function POST(request: Request) {
   const completion = await requestGuidanceCompletion(SYSTEM_PROMPT, userPayload);
 
   if (completion.status === "timeout") {
-    // Conservative: the provider may have billed it, so the reservation stands.
+    // We stopped waiting; DeepSeek may well have finished and billed. The full
+    // reservation stands rather than being released on an assumption.
     await settleRequest(begun.requestId, "settled", estimate, undefined, undefined, "timeout");
     return NextResponse.json(
       { error: "timeout", message: "That took too long. You can try again.", retryable: true },
@@ -199,10 +214,14 @@ export async function POST(request: Request) {
   }
 
   if (completion.status === "failed") {
+    // Only a request that never left this process is treated as free. Anything
+    // that may have reached DeepSeek keeps its reservation, because assuming a
+    // failure was free is how a budget stops being a budget.
+    const neverSent = completion.billing === "not_sent";
     await settleRequest(
       begun.requestId,
-      completion.billed ? "settled" : "released",
-      completion.billed ? estimate : 0,
+      neverSent ? "released" : "settled",
+      neverSent ? 0 : estimate,
       undefined,
       undefined,
       completion.detail,

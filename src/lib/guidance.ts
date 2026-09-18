@@ -77,6 +77,7 @@ export type GuidanceErrorCode =
   | "ai_disabled"
   | "budget_exhausted"
   | "rate_limited"
+  | "duplicate_in_flight"
   | "invalid_request"
   | "upstream_failed"
   | "invalid_model_output"

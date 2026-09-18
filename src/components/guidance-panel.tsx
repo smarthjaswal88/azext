@@ -376,7 +376,9 @@ function ProductGuidance({
         )}
       </div>
 
-      {/* The evidence itself, so a claim can be checked rather than taken. */}
+      {/* The evidence itself. Citations establish that a review exists and was
+          supplied — not that the summary represents it fairly. Showing the
+          text is what lets a reader judge that. */}
       <div className="mt-3 border-t border-border-subtle pt-2.5">
         <button
           type="button"
@@ -390,7 +392,12 @@ function ProductGuidance({
         </button>
 
         {expanded && (
-          <ul className="mt-2 space-y-2">
+          <>
+            <p className="mt-2 text-[11px] leading-snug text-ink-muted">
+              Cited reviews are highlighted. A citation shows which review was referenced, not
+              that the summary above describes it correctly — read them and judge for yourself.
+            </p>
+            <ul className="mt-2 space-y-2">
             {product.analysedReviews.map((review) => {
               const wasCited = product.citedReviewIds.includes(review.id);
               return (
@@ -414,8 +421,9 @@ function ProductGuidance({
                   </p>
                 </li>
               );
-            })}
-          </ul>
+              })}
+            </ul>
+          </>
         )}
       </div>
     </article>

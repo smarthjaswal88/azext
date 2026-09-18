@@ -64,6 +64,10 @@ export type BeginResult =
   | { status: "ok"; requestId: string }
   | { status: "budget_exhausted" }
   | { status: "rate_limited"; scope: string }
+  /** An identical request is already in flight and already reserved against
+   *  the budget. Charging twice for the same question is exactly what the
+   *  cache cannot prevent on its own. */
+  | { status: "duplicate_in_flight" }
   | { status: "unavailable"; detail: string };
 
 /** Reserves headroom for one call. Returns a request id that must be settled. */
@@ -97,6 +101,8 @@ export async function beginRequest(
       return { status: "budget_exhausted" };
     case "rate_limited":
       return { status: "rate_limited", scope: result.scope ?? "window" };
+    case "duplicate_in_flight":
+      return { status: "duplicate_in_flight" };
     case "no_budget_configured":
       return { status: "unavailable", detail: "no budget row" };
     default:

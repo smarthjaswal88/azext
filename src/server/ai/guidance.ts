@@ -10,8 +10,16 @@
  *
  *   2. Review text and shopper preferences are DATA. They are placed in a JSON
  *      payload, the system prompt says so, and nothing in them is treated as an
- *      instruction. The output is then validated field by field — a claim
- *      citing a review id we did not send is dropped.
+ *      instruction. The output is then validated field by field.
+ *
+ * WHAT CITATION VALIDATION DOES AND DOES NOT ESTABLISH. We check that every
+ * cited review id is one we actually supplied for that product, and drop any
+ * that is not. That proves the referenced review exists and was in evidence.
+ * It does NOT prove the sentence next to it is supported by that review's
+ * content — nothing here reads the review and checks the claim against it. A
+ * model can cite a real review and still describe it wrongly. This is why the
+ * cited reviews are rendered in full beside the claim: the check is a floor,
+ * and the reader is the one who can confirm the rest.
  */
 
 import type {
@@ -136,7 +144,9 @@ Hard rules:
   a measurement, or a quotation.
 - Never guarantee fit, sizing, comfort, durability or compatibility.
 - Any claim you make about reviews must cite the review ids you used, from the
-  ids supplied for that product. Do not cite an id you were not given.
+  ids supplied for that product. Do not cite an id you were not given. A
+  shopper will see the cited reviews next to your sentence, so only cite a
+  review that genuinely says what you claim it says.
 - You are given at most four review texts per product. Never describe these as
   a consensus, a trend, or what "most customers" say. They are a handful of
   individual records.
@@ -148,7 +158,7 @@ Hard rules:
   size is chosen.
 - Be concise and plain. Address the shopper directly.
 
-Reply with JSON only, in exactly this shape:
+Reply with json only — no prose, no code fences. Use exactly this json shape:
 {
   "products": [
     {
@@ -245,9 +255,12 @@ export interface ValidatedModelOutput {
 }
 
 /**
- * Validates the model's JSON against what it was actually given. Anything that
- * does not check out is dropped rather than shown: a cited review id we never
- * supplied is the signature of a fabricated claim.
+ * Validates the model's JSON against what it was actually given.
+ *
+ * Structural only. It confirms the shape, the slugs, the length caps, and that
+ * cited review ids were among those supplied. It cannot confirm that a summary
+ * fairly represents the reviews it cites — no code here compares a claim
+ * against the text behind it.
  */
 export function validateModelOutput(
   raw: unknown,
