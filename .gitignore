@@ -27,3 +27,16 @@ pnpm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Package manager internals
+.pnp
+.pnp.*
+
+# Test coverage
+/coverage
+
+# Certificates
+*.pem
+
+# Next.js generated types
+next-env.d.ts
