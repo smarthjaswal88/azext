@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "check:cart": "node scripts/check-cart-store.mjs"
+    "check:cart": "node scripts/check-cart-store.mjs",
+    "verify:orders": "node scripts/verify-order-flow.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createDemoOrder } from "@/server/orders";
+import { warnIfUnconfigured } from "@/server/supabase";
 import { parseRequestedItems, priceCart } from "@/server/pricing";
 
 /** Places a demo order.
@@ -37,22 +38,31 @@ export async function POST(request: Request) {
   const result = await createDemoOrder(idempotencyKey, priced);
 
   if (result.status === "unconfigured") {
-    return NextResponse.json(
-      { error: "storage_unconfigured", missing: result.missing },
-      { status: 503 },
-    );
+    // The missing variable names go to the server log, not to the client. A
+    // shopper cannot act on them, and a response body is readable by anyone.
+    warnIfUnconfigured();
+    return NextResponse.json({ error: "storage_unconfigured" }, { status: 503 });
   }
   if (result.status === "error") {
     return NextResponse.json({ error: "storage_error", message: result.message }, { status: 500 });
+  }
+  if (result.status === "key_conflict") {
+    // The key was already used for a different order. Returning that order
+    // would tell this caller about a purchase they did not make, so nothing
+    // about it is disclosed.
+    return NextResponse.json({ error: "idempotency_key_conflict" }, { status: 409 });
   }
 
   return NextResponse.json(
     {
       confirmationToken: result.confirmationToken,
+      // "created" on the first call, "reused" when an identical request
+      // repeated. Both mean exactly one order exists.
+      outcome: result.status,
       // Echoed back for display only; the stored values are the ones above.
       totalCents: priced.totalCents,
       purchasedVariantIds: priced.lines.filter((l) => l.available).map((l) => l.variantId),
     },
-    { status: 201 },
+    { status: result.status === "created" ? 201 : 200 },
   );
 }

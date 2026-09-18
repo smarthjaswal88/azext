@@ -29,13 +29,28 @@ export function isSupabaseConfigured(): boolean {
   return readSupabaseConfig() !== undefined;
 }
 
-/** Which variables are missing, for an honest message in the UI. Names only —
- *  never values. */
+/** Which variables are missing. Names only, never values. This is for **server
+ *  diagnostics** — the operator's logs and the README. It is deliberately not
+ *  shown to shoppers, who cannot act on it and should not be reading our
+ *  deployment configuration off a checkout page. */
 export function missingSupabaseVars(): string[] {
   const missing: string[] = [];
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) missing.push("NEXT_PUBLIC_SUPABASE_URL");
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) missing.push("SUPABASE_SERVICE_ROLE_KEY");
   return missing;
+}
+
+let warned = false;
+
+/** Logs once per process, server-side, so an operator can see why checkout is
+ *  disabled without the reason appearing in the UI. */
+export function warnIfUnconfigured(): void {
+  if (warned || isSupabaseConfigured()) return;
+  warned = true;
+  console.warn(
+    `[orders] Supabase is not configured — checkout is disabled. Missing: ${missingSupabaseVars().join(", ")}. ` +
+      "See \"Supabase setup\" in README.md and apply supabase/migrations/.",
+  );
 }
 
 let cached: SupabaseClient | undefined;

@@ -23,18 +23,22 @@ interface Delivery {
 type Submission =
   | { state: "idle" }
   | { state: "submitting" }
-  | { state: "failed"; message: string; retryable: boolean };
+  | {
+      state: "failed";
+      message: string;
+      retryable: boolean;
+      /** Cannot be retried with this key, but a fresh attempt will work. */
+      recoverable?: boolean;
+    };
 
 export function CheckoutView({
   directItem,
   storageReady,
-  missingVars,
   delivery,
 }: {
   /** Set for Buy now. When present the cart is ignored entirely. */
   directItem?: CartItem;
   storageReady: boolean;
-  missingVars: string[];
   delivery: Delivery;
 }) {
   const router = useRouter();
@@ -70,13 +74,24 @@ export function CheckoutView({
         purchasedVariantIds?: string[];
         error?: string;
         message?: string;
-        missing?: string[];
       };
 
       if (!response.ok) {
+        if (payload.error === "idempotency_key_conflict") {
+          // This attempt's key was already used for different contents. Retrying
+          // cannot help and must not silently surface that other order.
+          setSubmission({
+            state: "failed",
+            message:
+              "Your basket changed after this checkout was opened. Start a fresh order to continue — nothing has been placed.",
+            retryable: false,
+            recoverable: true,
+          });
+          return;
+        }
         const message =
           payload.error === "storage_unconfigured"
-            ? `Order storage is not configured (${(payload.missing ?? []).join(", ")}).`
+            ? "Orders cannot be placed right now."
             : payload.error === "nothing_purchasable"
               ? "Nothing in this order can be bought right now."
               : (payload.message ?? `Order failed (${response.status}).`);
@@ -237,19 +252,10 @@ export function CheckoutView({
             </button>
           ) : (
             <div className="mt-4 rounded-md border border-sale/40 bg-surface-muted p-3">
-              <p className="text-sm font-semibold text-sale">Checkout unavailable</p>
+              <p className="text-sm font-semibold text-sale">Checkout is unavailable</p>
               <p className="mt-1 text-xs text-muted-ink">
-                Orders are stored in Supabase, which is not configured on this deployment, so no
-                order can be recorded. Nothing is kept in memory as a stand-in — an order that
-                vanished on restart would be worse than this message.
+                Orders cannot be placed right now. Your cart is unaffected.
               </p>
-              {missingVars.length > 0 && (
-                <p className="mt-2 text-xs text-muted-ink">
-                  Missing:{" "}
-                  <code className="font-mono">{missingVars.join(", ")}</code>. See the README
-                  section &ldquo;Supabase setup&rdquo;.
-                </p>
-              )}
             </div>
           )}
 
@@ -270,6 +276,18 @@ export function CheckoutView({
                     order.
                   </p>
                 </>
+              )}
+              {submission.recoverable && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    idempotencyKey.current = crypto.randomUUID();
+                    setSubmission({ state: "idle" });
+                  }}
+                  className="mt-2 rounded-md border border-border-subtle px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
+                >
+                  Start a fresh order
+                </button>
               )}
             </div>
           )}

@@ -34,6 +34,7 @@ No API credentials are required to run, lint, typecheck or build the app at this
 | Command | What it does |
 |---|---|
 | `npm run check:cart` | Behavioural checks for the persisted cart store |
+| `npm run verify:orders` | End-to-end order-flow checks; needs a running server and Supabase |
 | `npm run dev` | Development server |
 | `npm run build` | Production build |
 | `npm start` | Serve the production build (run `build` first) |
@@ -61,8 +62,11 @@ checkout is disabled and says so** — nothing is kept in memory as a stand-in, 
 that disappeared on the next restart would look like it had worked.
 
 1. Create a Supabase project.
-2. Apply the migration in `supabase/migrations/0001_demo_orders.sql`, either with the Supabase
-   CLI (`supabase db push`) or by pasting it into the SQL editor.
+2. Apply **both** migrations in `supabase/migrations/`, in order, either with the Supabase CLI
+   (`supabase db push`) or by pasting them into the SQL editor:
+   - `0001_demo_orders.sql` — tables, RLS, the order-creation function
+   - `0002_idempotency_fingerprint.sql` — binds an idempotency key to the request it was first
+     used for (additive; safe to apply on top of 0001)
 3. Put these in `.env.local` — copy the values from **Project Settings → API**:
 
    ```
@@ -74,6 +78,34 @@ that disappeared on the next restart would look like it had worked.
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is listed in `.env.example` for later steps. Order storage does
 not use it.
+
+### Verifying it works
+
+With the server running and Supabase configured:
+
+```bash
+npm run verify:orders
+```
+
+It checks order creation and persisted totals, confirmation retrieval after a refresh,
+concurrent submissions with one key, key reuse with a different payload, unknown tokens, and —
+if `NEXT_PUBLIC_SUPABASE_ANON_KEY` is set — that the anon role can read nothing. It exits 2 when
+Supabase is not configured, so "blocked" is never mistaken for "passed", and it never prints a
+confirmation token in full.
+
+### Idempotency, precisely
+
+A checkout attempt generates one key and reuses it across retries.
+
+| Case | Result |
+|---|---|
+| Same key, same request | The original order and its token. Exactly one order exists. |
+| Same key, different request | **409, and no token is returned.** |
+| New key | A new order. |
+
+The middle row is why orders store a fingerprint of the request the key was first used for.
+Returning the earlier order there would tell the caller "done" and show them a purchase they
+did not just make.
 
 ### How orders stay private
 
@@ -145,6 +177,8 @@ recorded here. These are our choices, not observations of any other retailer.
 | Hydration uses **`useSyncExternalStore` with an undefined server snapshot** | A `hydrated` flag set from persist's rehydrate callback cannot work: with synchronous storage that callback runs while the store is still being created, so the flag never flips. |
 | Buy now **never touches the cart** | It checks out one selection. Merging it into the cart, or clearing the cart, would both lose work the shopper did not ask to lose. |
 | Order idempotency is enforced **in the database**, on a client-generated key | A unique constraint is the only thing that actually holds under concurrent double clicks. The key is stable across retries so a retry after a timeout resolves to the first order. |
+| A key is **bound to a request fingerprint** | Without it, reusing a key for different contents silently returns an unrelated order. The fingerprint is built from server-recomputed lines and totals, so a client cannot forge a match. |
+| Configuration problems are **server diagnostics, not UI** | A shopper cannot act on a missing environment variable, and a response body is readable by anyone. The page says checkout is unavailable; the server log names the variables. |
 | The cart is cleared **only after** an order is confirmed, and only of what was bought | Clearing first loses the cart if the write fails. |
 | The popularity sort is called **"Most rated"** | It orders by number of ratings. Calling it "Featured" implied a merchandised ordering we do not have. |
 | A product matches a price filter when **any variant** falls in range | The shopper can select that variant. |

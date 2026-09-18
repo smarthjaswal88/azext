@@ -20,19 +20,10 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
         <SiteHeader />
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
           <h1 className="text-2xl font-semibold">Order details unavailable</h1>
-          {result.status === "unconfigured" ? (
-            <>
-              <p className="mt-2 text-muted-ink">
-                Orders are stored in Supabase, which is not configured on this deployment, so
-                this order cannot be looked up.
-              </p>
-              <p className="mt-2 text-sm text-muted-ink">
-                Missing: <code className="font-mono">{result.missing.join(", ")}</code>
-              </p>
-            </>
-          ) : (
-            <p className="mt-2 text-muted-ink">{result.message}</p>
-          )}
+          <p className="mt-2 text-muted-ink">
+            We cannot look up this order right now. Nothing is lost — try the link again
+            shortly.
+          </p>
           <Link
             href="/search"
             className="mt-6 inline-block rounded-md border border-border-subtle px-4 py-2 text-sm font-medium hover:bg-surface-muted"

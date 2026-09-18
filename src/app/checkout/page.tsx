@@ -3,7 +3,7 @@ import { CheckoutView } from "@/components/checkout-view";
 import { SiteHeader } from "@/components/site-header";
 import { clampQuantity, type CartItem } from "@/lib/cart";
 import { DEMO_DELIVERY } from "@/server/orders";
-import { isSupabaseConfigured, missingSupabaseVars } from "@/server/supabase";
+import { isSupabaseConfigured, warnIfUnconfigured } from "@/server/supabase";
 
 export const metadata = { title: "Checkout" };
 
@@ -30,6 +30,8 @@ export default async function CheckoutPage({
     : undefined;
 
   const storageReady = isSupabaseConfigured();
+  // Names the missing variables in the server log, not on the page.
+  warnIfUnconfigured();
 
   return (
     <>
@@ -53,17 +55,10 @@ export default async function CheckoutPage({
 
         {!storageReady && (
           <div className="mb-6 rounded-lg border border-sale/40 bg-surface-muted p-4">
-            <h2 className="text-base font-semibold text-sale">Checkout unavailable</h2>
+            <h2 className="text-base font-semibold text-sale">Checkout is unavailable</h2>
             <p className="mt-1 max-w-prose text-sm text-muted-ink">
-              Orders are stored in Supabase, which is not configured on this deployment. No order
-              can be recorded, so the order button is disabled. Nothing is held in memory as a
-              stand-in — an order that vanished on the next restart would look like it worked.
-            </p>
-            <p className="mt-2 text-sm text-muted-ink">
-              Missing environment variables:{" "}
-              <code className="font-mono text-xs">{missingSupabaseVars().join(", ")}</code>. See
-              &ldquo;Supabase setup&rdquo; in the README, and apply{" "}
-              <code className="font-mono text-xs">supabase/migrations/0001_demo_orders.sql</code>.
+              Orders cannot be placed right now. Browsing and the cart still work, and anything
+              you have added stays where it is.
             </p>
           </div>
         )}
@@ -71,7 +66,6 @@ export default async function CheckoutPage({
         <CheckoutView
           directItem={directItem}
           storageReady={storageReady}
-          missingVars={missingSupabaseVars()}
           delivery={DEMO_DELIVERY}
         />
       </main>

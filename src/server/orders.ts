@@ -7,7 +7,7 @@
  * came back.
  */
 
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { PricedCart } from "@/lib/cart";
 import { getServiceClient, missingSupabaseVars } from "./supabase";
 
@@ -47,7 +47,13 @@ export interface StoredOrder {
 }
 
 export type CreateOrderResult =
-  | { status: "ok"; confirmationToken: string }
+  /** A new order was written. */
+  | { status: "created"; confirmationToken: string }
+  /** The same key and the same request — a retry. Same order, no duplicate. */
+  | { status: "reused"; confirmationToken: string }
+  /** The same key for a different request. No token is returned: handing back
+   *  an unrelated order would be worse than failing. */
+  | { status: "key_conflict" }
   | { status: "unconfigured"; missing: string[] }
   | { status: "error"; message: string };
 
@@ -55,6 +61,23 @@ export type CreateOrderResult =
  *  confirmation link is not a realistic attack. */
 function newConfirmationToken(): string {
   return randomBytes(32).toString("base64url");
+}
+
+/** Identifies what an idempotency key was used for. Built from the
+ *  server-recomputed lines and totals, never from anything the client sent, so
+ *  a client cannot make two different orders look like the same request. */
+function requestFingerprint(priced: PricedCart): string {
+  const canonical = JSON.stringify({
+    items: priced.lines
+      .filter((l) => l.available)
+      .map((l) => [l.variantId, l.quantity, l.unitPriceCents])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+    subtotal: priced.subtotalCents,
+    shipping: priced.shippingCents,
+    total: priced.totalCents,
+    currency: priced.currency,
+  });
+  return createHash("sha256").update(canonical).digest("hex");
 }
 
 export async function createDemoOrder(
@@ -71,8 +94,9 @@ export async function createDemoOrder(
 
   // The database function does the insert and the items in one transaction and
   // ignores a repeated idempotency key, returning the original token.
-  const { data, error } = await supabase.rpc("create_demo_order", {
+  const { data, error } = await supabase.rpc("create_demo_order_v2", {
     p_idempotency_key: idempotencyKey,
+    p_request_fingerprint: requestFingerprint(priced),
     p_confirmation_token: newConfirmationToken(),
     p_currency: priced.currency,
     p_subtotal_cents: priced.subtotalCents,
@@ -91,10 +115,17 @@ export async function createDemoOrder(
   });
 
   if (error) return { status: "error", message: error.message };
-  if (typeof data !== "string" || data.length === 0) {
-    return { status: "error", message: "The database did not return a confirmation token." };
+
+  const result = data as { status?: string; confirmation_token?: string } | null;
+  if (result?.status === "conflict") return { status: "key_conflict" };
+  if (
+    (result?.status === "created" || result?.status === "reused") &&
+    typeof result.confirmation_token === "string" &&
+    result.confirmation_token.length > 0
+  ) {
+    return { status: result.status, confirmationToken: result.confirmation_token };
   }
-  return { status: "ok", confirmationToken: data };
+  return { status: "error", message: "The database did not return a usable result." };
 }
 
 export type LookupOrderResult =
