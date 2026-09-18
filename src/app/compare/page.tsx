@@ -263,6 +263,21 @@ export default async function ComparePage({
           </Link>
         </div>
 
+        {/* Optional, and placed first because it is where a shopper decides
+            whether they want help. Nothing below it depends on using it: the
+            table renders, variants change and items reach the cart whether or
+            not guidance is ever requested. */}
+        <GuidancePanel
+          items={columns.map((column) => ({
+            slug: column.product.slug,
+            title: column.product.title,
+            colorId: column.selection.colorId,
+            sizeId: column.selection.sizeId,
+          }))}
+          group={columns[0].product.comparisonGroup}
+          aiAvailable={readAiAvailability().available}
+        />
+
         {notices.length > 0 && (
           <ul
             role="status"
@@ -426,12 +441,20 @@ export default async function ComparePage({
               const reviews = column.product.reviews.slice(0, 2);
               return (
                 <div key={`reviews-${column.product.slug}`} className={cell}>
-                  <p className="mb-2 text-xs text-ink-muted">
-                    {reviews.length} of {formatCount(column.product.reviews.length)} written demo
-                    reviews held for this product. The{" "}
-                    {formatCount(column.product.rating.reviewCount)} figure above is an aggregate
-                    in the demo data — those individual reviews do not exist here.
+                  <p className="text-xs font-medium text-ink-muted">
+                    {reviews.length} of {formatCount(column.product.reviews.length)} reviews
                   </p>
+                  <details className="mb-2 mt-0.5">
+                    <summary className="cursor-pointer text-[11px] text-ink-link">
+                      Why fewer than the rating count?
+                    </summary>
+                    <p className="mt-1 text-[11px] leading-snug text-ink-muted">
+                      This product holds {formatCount(column.product.reviews.length)} written
+                      review records. The {formatCount(column.product.rating.reviewCount)} figure
+                      in the ratings row is an aggregate in the demo data — those individual
+                      reviews do not exist here, and nothing has read them.
+                    </p>
+                  </details>
                   <ul className="space-y-2.5">
                     {reviews.map((review) => {
                       const bought = review.variantId
@@ -487,20 +510,6 @@ export default async function ComparePage({
             ))}
           </div>
         </div>
-
-        {/* Guidance sits below the table on purpose: the comparison and its
-            purchase controls stay usable while guidance is loading, has failed,
-            or is switched off entirely. */}
-        <GuidancePanel
-          items={columns.map((column) => ({
-            slug: column.product.slug,
-            title: column.product.title,
-            colorId: column.selection.colorId,
-            sizeId: column.selection.sizeId,
-          }))}
-          group={columns[0].product.comparisonGroup}
-          aiAvailable={readAiAvailability().available}
-        />
 
         <p className="mt-3 text-xs text-ink-muted">
           Comparison is optional. Every product can be bought from its own page without it.

@@ -135,37 +135,41 @@ export function GuidancePanel({
   return (
     <section
       aria-labelledby="guidance-heading"
-      className="mt-4 rounded-lg border border-border-subtle bg-surface p-3 sm:p-4"
+      className="mb-3 rounded-lg border border-border-subtle bg-surface p-3 sm:p-4"
     >
-      <h2 id="guidance-heading" className="text-base font-bold sm:text-lg">
+      <h2 id="guidance-heading" className="text-base font-bold">
         Help me choose
       </h2>
-      <p className="mt-1 max-w-prose text-sm text-ink-muted">
-        Optional. Tell us what matters and we will read the review texts we hold for these
-        products and explain how they differ.
+      <p className="mt-0.5 max-w-prose text-sm text-ink-muted">
+        Tell us your budget and what matters most. Get a comparison based on product details and
+        available demo reviews.
       </p>
 
-      <div className="mt-3 max-w-2xl">
-        <label htmlFor="preferences" className="block text-sm font-semibold">
-          What matters to you?
-        </label>
-        <textarea
-          id="preferences"
-          value={preferences}
-          onChange={(e) => setPreferences(e.target.value.slice(0, MAX_PREFERENCE_CHARS))}
-          rows={2}
-          placeholder={`For example: ${PLACEHOLDERS[group]}`}
-          className="mt-1.5 w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-sm"
-        />
-        <div className="mt-1 flex items-center justify-between gap-3">
-          <p className="text-xs text-ink-muted">
-            {hasPreferences
-              ? "We will suggest a best fit, or say if nothing fits."
-              : "Leave blank for a plain comparison with no personal recommendation."}
-          </p>
-          <p className="shrink-0 text-xs tabular-nums text-ink-muted">
-            {preferences.length}/{MAX_PREFERENCE_CHARS}
-          </p>
+      {/* Field and action on one line from `sm` up, so the panel stays shallow
+          and the table is still the first thing on the page. */}
+      <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:items-start">
+        <div className="min-w-0 flex-1">
+          <label htmlFor="preferences" className="sr-only">
+            What matters to you?
+          </label>
+          <textarea
+            id="preferences"
+            value={preferences}
+            onChange={(e) => setPreferences(e.target.value.slice(0, MAX_PREFERENCE_CHARS))}
+            rows={2}
+            placeholder={`What matters to you? For example: ${PLACEHOLDERS[group]}`}
+            className="w-full resize-y rounded-md border border-border-strong bg-surface px-3 py-2 text-sm"
+          />
+          <div className="mt-0.5 flex items-center justify-between gap-3">
+            <p className="text-xs text-ink-muted">
+              {hasPreferences
+                ? "We will suggest a best fit, or say if nothing fits."
+                : "Optional — leave blank for a plain comparison with no recommendation."}
+            </p>
+            <p className="shrink-0 text-xs tabular-nums text-ink-muted">
+              {preferences.length}/{MAX_PREFERENCE_CHARS}
+            </p>
+          </div>
         </div>
 
         {aiAvailable ? (
@@ -173,22 +177,20 @@ export function GuidancePanel({
             type="button"
             onClick={() => void requestGuidance()}
             disabled={phase.state === "loading"}
-            className="mt-2.5 rounded-full bg-accent px-5 py-2 text-sm font-semibold text-accent-ink shadow-sm hover:bg-accent-hover disabled:opacity-60"
+            className="shrink-0 rounded-full bg-accent px-5 py-2 text-sm font-semibold text-accent-ink shadow-sm hover:bg-accent-hover disabled:opacity-60"
           >
             {phase.state === "loading" ? "Reading the reviews…" : "Help me choose"}
           </button>
         ) : (
-          <p className="mt-2.5 rounded-md border border-border-strong bg-surface-muted px-3 py-2 text-sm text-ink-muted">
-            Guidance is unavailable in this deployment. The comparison above, and everything
-            else in the store, works as normal.
+          <p className="shrink-0 rounded-md border border-border-strong bg-surface-muted px-3 py-2 text-sm text-ink-muted sm:max-w-[260px]">
+            AI guidance is currently unavailable. You can still compare product details below.
           </p>
         )}
       </div>
 
-      <p className="mt-3 max-w-prose rounded-md border border-border-subtle bg-surface-muted px-3 py-2 text-xs text-ink-muted">
-        This catalog is a demo. Each product holds only three or four written review records,
-        far fewer than the aggregate rating figures shown in the table. Any guidance is based
-        on those few records alone.
+      <p className="mt-2 text-xs text-ink-muted">
+        Demo catalog: each product holds only a few written reviews, far fewer than the rating
+        counts in the table. Guidance uses those records alone.
       </p>
 
       {phase.state === "loading" && (

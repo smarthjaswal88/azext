@@ -224,8 +224,10 @@ does not exist would be worse than no panel.
 
 ## AI guidance
 
-Optional, inside the comparison page only. Everything else — browsing, search, cart, checkout —
-works whether or not it is switched on.
+Optional, inside the comparison page only. The panel sits above the table, where a shopper
+decides whether they want help; nothing below it depends on using it. The table renders,
+variants change and items reach the cart whether guidance is requested, still loading, failed,
+or switched off entirely.
 
 ### Model, checked against the documentation
 
