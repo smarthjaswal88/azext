@@ -21,6 +21,11 @@ import type {
 import { fromPriceCents } from "@/lib/product";
 import { DEMO_PRODUCTS } from "./demo-data";
 
+/** Bumped whenever the demo catalog changes. Part of the AI cache key, so a
+ *  price or review edit invalidates previously cached guidance instead of
+ *  serving advice about a product that no longer exists in that form. */
+export const CATALOG_VERSION = "2026-09-18.1";
+
 const CATEGORIES: Category[] = [
   {
     id: "headphones",

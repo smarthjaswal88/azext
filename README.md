@@ -6,9 +6,9 @@ Shoppers browse, pick a product and check out directly. Alternatively they can c
 three products using specifications, ratings, review insights and their own stated preferences.
 
 **Built so far:** a demo catalog, search with filtering and sorting, product detail pages, a
-persisted cart, a simulated checkout that records demo orders, and optional product comparison.
-**Not built:** AI explanations, authentication, real payment. You will not find buttons for
-those — an absence is clearer than a control that does nothing.
+persisted cart, a simulated checkout that records demo orders, optional product comparison, and
+optional DeepSeek-written guidance inside that comparison.
+**Not built:** authentication, real payment.
 
 All products, prices, images and reviews are invented for this prototype.
 
@@ -67,6 +67,7 @@ that disappeared on the next restart would look like it had worked.
    - `0001_demo_orders.sql` — tables, RLS, the order-creation function
    - `0002_idempotency_fingerprint.sql` — binds an idempotency key to the request it was first
      used for (additive; safe to apply on top of 0001)
+   - `0003_ai_guidance.sql` — AI spend budget, usage ledger and guidance cache
 3. Put these in `.env.local` — copy the values from **Project Settings → API**:
 
    ```
@@ -203,6 +204,112 @@ Optional throughout: every product can be bought from its own page without ever 
 Two further row groups — "Review confidence" and "Match for your needs" — are planned for the
 DeepSeek step. They are deliberately **not** stubbed out: an empty panel promising analysis that
 does not exist would be worse than no panel.
+
+## AI guidance
+
+Optional, inside the comparison page only. Everything else — browsing, search, cart, checkout —
+works whether or not it is switched on.
+
+### Model
+
+`deepseek-flash`, the non-reasoning chat model and the cheaper of DeepSeek's two offerings.
+Reasoning is switched off explicitly in the request (`thinking: { type: "disabled" }`) rather
+than left to the default. Requests use `response_format: { type: "json_object" }`,
+`max_tokens: 900`, `temperature: 0.2`, no streaming, and a 25-second timeout.
+
+### Spend controls
+
+Paid requests are off by default and stay off until **all four** of these hold:
+
+| Gate | Why |
+|---|---|
+| `AI_LIVE_REQUESTS=enabled` | An explicit switch, so no deployment starts spending by accident. |
+| `DEEPSEEK_API_KEY` set | Obvious. |
+| Supabase configured | The budget ledger and rate limits live there. |
+| A row in `ai_budget` | Migration `0003` inserts one at **$5.00**. |
+
+On top of that:
+
+- **Called only on "Help me choose".** Never on page load, never while typing, never after a
+  variant change.
+- **One attempt, no retries.** Retrying a paid endpoint automatically doubles the bill for a
+  request the shopper made once. Retry is a button the shopper presses.
+- **Request shape is capped**: at most 3 products, their specifications, and at most 4 review
+  excerpts each; preference text is cut at 280 characters; the whole body is rejected above 8 KB.
+- **Results are cached** in Supabase by model, catalog version, products, chosen variants and
+  normalised preferences. An identical question is never paid for twice.
+- **Per-visitor rate limits**: 6 per hour, 20 per day, keyed by a salted hash of IP and user
+  agent. Neither the IP nor the user agent is stored.
+
+### How the budget actually works, and what it does not guarantee
+
+Cost is tracked in integer micro-dollars. Before a call, the route reserves an estimate
+computed from the prompt length and the output ceiling, priced at DeepSeek's **peak** rates
+(the more expensive tier) so the reservation lands above the true cost. The reservation is
+recorded in `ai_usage` as `reserved`. Afterwards it is replaced with the real cost derived from
+the token usage the API reports. Committed spend is the sum of settled actuals plus outstanding
+reservations, so two concurrent requests cannot both slip under the ceiling.
+
+Honest limitations — this bounds spend, it is not a hard financial guarantee:
+
+- Costs are computed from **published prices and reported token counts**. If either is wrong or
+  changes, the ledger is wrong.
+- A call can be billed by DeepSeek while the settle write fails (a crash between the two). The
+  reservation then stands, which errs towards under-spending, but the recorded figure is an
+  estimate rather than the invoice.
+- A timeout is recorded as **billed**, because the provider may have charged for it. This can
+  over-count.
+- It only knows about requests made through this route. Spend from anywhere else on the same
+  key is invisible to it.
+- **A request count is not a dollar cap.** The cap is on estimated dollars; request limits are a
+  separate, coarser guard.
+
+Check the ledger directly with `select public.ai_budget_status();`, and change the ceiling by
+updating `ai_budget.limit_micros`.
+
+### Review confidence is not the model's opinion
+
+Two assessments appear per product, and they are produced differently on purpose.
+
+**Review confidence** is computed on the server by fixed rules in
+`src/server/ai/confidence.ts`. It measures *how far the available review evidence supports any
+conclusion* — not quality, and not whether a shopper will be happy. The rules:
+
+| Review texts analysed | Level |
+|---|---|
+| 0–1 | Insufficient evidence |
+| 2–3 | Low |
+| 4–7 | Medium |
+| 8+ | High |
+
+then one downgrade (never below Low) when the analysed ratings span 3 stars or more, because
+sharply split opinion supports less.
+
+This demo catalog holds at most **four** review texts per product, so **High is unreachable
+here**. That is deliberate. The aggregate "412 written reviews" figures in the demo data are
+just numbers — those individual reviews do not exist, and nothing has read them. The panel says
+so, and the count of texts actually analysed is shown next to every assessment.
+
+The model is told explicitly not to produce a confidence rating, and its output is not consulted
+for one.
+
+**Match for your needs** is the model's, and is where suitability, tradeoffs and unknowns live.
+With preferences it offers a suggested choice, including "No clear match". Without preferences
+it describes differences and picks no winner.
+
+### Keeping the model honest
+
+- Review text and preference text go into a JSON payload the system prompt identifies as **data,
+  not instructions**.
+- Every review-based claim must cite review ids. Output is validated against the ids actually
+  sent; a citation we did not supply is dropped, and cited reviews are shown inline so a shopper
+  can read the evidence behind a claim.
+- Budget comparisons are computed in integer cents in `src/server/ai/guidance.ts` and handed to
+  the model as booleans. It is told not to do arithmetic on prices.
+- If no clothing size is chosen, the price is marked provisional everywhere it appears and no
+  confirmed variant price is claimed.
+- Output failing validation is reported as an error. Canned text is never presented as a live
+  response.
 
 ### Search behaviour, stated precisely
 

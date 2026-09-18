@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CompareAddToCart } from "@/components/compare-add-to-cart";
+import { GuidancePanel } from "@/components/guidance-panel";
 import { SiteHeader } from "@/components/site-header";
 import { RatingLine } from "@/components/star-rating";
 import {
@@ -13,6 +14,7 @@ import {
 import { formatCount, formatPrice } from "@/lib/format";
 import { discountPercent, findVariant, imagesForColor } from "@/lib/product";
 import type { OptionKey, Product, Variant } from "@/lib/types";
+import { readAiAvailability } from "@/server/ai/budget";
 import { getProductsBySlugs } from "@/server/catalog";
 
 export const metadata = { title: "Compare products" };
@@ -383,14 +385,6 @@ export default async function ComparePage({
               );
             })}
 
-            {/*
-              The next step adds two further row groups here — "Review
-              confidence" and "Match for your needs" — each rendered from a
-              DeepSeek response. They are not stubbed out now: an empty panel
-              promising analysis that does not exist would be worse than no
-              panel at all.
-            */}
-
             {/* ---- cart ---- */}
             <div className={`${labelCell} border-b-0`}>Buy</div>
             {columns.map((column) => (
@@ -413,6 +407,20 @@ export default async function ComparePage({
             ))}
           </div>
         </div>
+
+        {/* Guidance sits below the table on purpose: the comparison and its
+            purchase controls stay usable while guidance is loading, has failed,
+            or is switched off entirely. */}
+        <GuidancePanel
+          items={columns.map((column) => ({
+            slug: column.product.slug,
+            title: column.product.title,
+            colorId: column.selection.colorId,
+            sizeId: column.selection.sizeId,
+          }))}
+          category={columns[0].product.category}
+          aiAvailable={readAiAvailability().available}
+        />
 
         <p className="mt-3 text-xs text-ink-muted">
           Comparison is optional. Every product can be bought from its own page without it.
