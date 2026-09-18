@@ -4,15 +4,15 @@ import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { MAX_COMPARE, type AddToCompareResult, type CompareEntry } from "./compare";
-import type { CategoryId } from "./types";
+import type { ComparisonGroup } from "./comparison-group";
 
 interface CompareState {
   entries: CompareEntry[];
-  /** Attempts to add. Never silently drops or replaces anything — a category
+  /** Attempts to add. Never silently drops or replaces anything — a group
    *  clash is reported so the UI can ask, and the shopper answers. */
-  add: (slug: string, category: CategoryId) => AddToCompareResult;
-  /** Used only after the shopper explicitly agrees to switch category. */
-  replaceWith: (slug: string, category: CategoryId) => void;
+  add: (slug: string, group: ComparisonGroup) => AddToCompareResult;
+  /** Used only after the shopper explicitly agrees to switch group. */
+  replaceWith: (slug: string, group: ComparisonGroup) => void;
   remove: (slug: string) => void;
   clear: () => void;
 }
@@ -22,28 +22,28 @@ export const useCompareStore = create<CompareState>()(
     (set, get) => ({
       entries: [],
 
-      add: (slug, category) => {
+      add: (slug, group) => {
         const { entries } = get();
         if (entries.some((e) => e.slug === slug)) return { status: "already_added" };
 
-        const current = entries[0]?.category;
-        if (current && current !== category) {
-          return { status: "category_mismatch", current, incoming: category };
+        const current = entries[0]?.group;
+        if (current && current !== group) {
+          return { status: "group_mismatch", current, incoming: group };
         }
         if (entries.length >= MAX_COMPARE) return { status: "full", max: MAX_COMPARE };
 
-        set({ entries: [...entries, { slug, category }] });
+        set({ entries: [...entries, { slug, group }] });
         return { status: "added" };
       },
 
-      replaceWith: (slug, category) => set({ entries: [{ slug, category }] }),
+      replaceWith: (slug, group) => set({ entries: [{ slug, group }] }),
 
       remove: (slug) => set((s) => ({ entries: s.entries.filter((e) => e.slug !== slug) })),
 
       clear: () => set({ entries: [] }),
     }),
     {
-      name: "shop-demo-compare-v1",
+      name: "shop-demo-compare-v2",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ entries: state.entries }),
     },

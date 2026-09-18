@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CATEGORY_LABELS } from "@/lib/compare";
+import { comparisonGroupOf } from "@/lib/comparison-group";
 import { formatPrice } from "@/lib/format";
 import { fromPriceCents, hasMultiplePrices, imagesForColor } from "@/lib/product";
 import type { Product } from "@/lib/types";
@@ -74,11 +74,7 @@ export function ProductCard({ product }: { product: Product }) {
 
           {/* Outside the product link on purpose: a button nested in an anchor
               is not a valid or predictable control. */}
-          <CompareToggle
-            slug={product.slug}
-            category={product.category}
-            categoryLabel={CATEGORY_LABELS[product.category]}
-          />
+          <CompareToggle slug={product.slug} group={comparisonGroupOf(product)} />
         </div>
       </div>
     </article>

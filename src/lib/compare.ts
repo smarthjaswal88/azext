@@ -3,7 +3,7 @@
  *  Comparison is optional throughout: nothing here is required to browse, add
  *  to the cart or check out. */
 
-import type { CategoryId } from "./types";
+import type { ComparisonGroup } from "./comparison-group";
 
 export const MAX_COMPARE = 3;
 export const MIN_COMPARE = 2;
@@ -12,7 +12,7 @@ export const MIN_COMPARE = 2;
  *  resolved from the catalog on the server. */
 export interface CompareEntry {
   slug: string;
-  category: CategoryId;
+  group: ComparisonGroup;
 }
 
 /** One column on the comparison page. `size` is empty until the shopper picks
@@ -57,11 +57,4 @@ export type AddToCompareResult =
   | { status: "added" }
   | { status: "already_added" }
   | { status: "full"; max: number }
-  | { status: "category_mismatch"; current: CategoryId; incoming: CategoryId };
-
-/** Display labels for the comparison prompts. Kept here so a product card does
- *  not have to await the category list just to name a category in a sentence. */
-export const CATEGORY_LABELS: Record<CategoryId, string> = {
-  headphones: "Headphones",
-  clothing: "Clothing",
-};
+  | { status: "group_mismatch"; current: ComparisonGroup; incoming: ComparisonGroup };

@@ -5,7 +5,7 @@ import { AddToCart } from "@/components/add-to-cart";
 import { CompareToggle } from "@/components/compare-toggle";
 import { SiteHeader } from "@/components/site-header";
 import { RatingLine, StarRow } from "@/components/star-rating";
-import { CATEGORY_LABELS } from "@/lib/compare";
+import { comparisonGroupOf } from "@/lib/comparison-group";
 import { formatCount, formatPrice } from "@/lib/format";
 import {
   discountPercent,
@@ -274,8 +274,7 @@ export default async function ProductPage({
 
               <CompareToggle
                 slug={product.slug}
-                category={product.category}
-                categoryLabel={CATEGORY_LABELS[product.category]}
+                group={comparisonGroupOf(product)}
                 variant="detail"
               />
 

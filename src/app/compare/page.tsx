@@ -11,6 +11,7 @@ import {
   MIN_COMPARE,
   type CompareSelection,
 } from "@/lib/compare";
+import { comparisonGroupOf } from "@/lib/comparison-group";
 import { formatCount, formatPrice } from "@/lib/format";
 import { discountPercent, findVariant, imagesForColor } from "@/lib/product";
 import type { OptionKey, Product, Variant } from "@/lib/types";
@@ -118,17 +119,18 @@ export default async function ComparePage({
     notices.push(`Only the first ${MAX_COMPARE} products are shown.`);
   }
 
-  // One category at a time. Anything that does not match the first product is
-  // dropped with an explanation rather than silently mixed in.
-  const category = products[0]?.category;
-  const sameCategory = products.filter((p) => p.category === category);
-  if (sameCategory.length < products.length) {
+  // One comparison group at a time. A URL naming products from two groups is
+  // trimmed to the first product's group and says so, rather than rendering a
+  // table whose rows cannot line up.
+  const group = products[0] ? comparisonGroupOf(products[0]) : undefined;
+  const inGroup = products.filter((p) => comparisonGroupOf(p) === group);
+  if (inGroup.length < products.length) {
     notices.push(
-      "Products can only be compared within one category, so items from another category were left out.",
+      "Products can only be compared within one group, so items from another group were left out.",
     );
   }
 
-  const columns: Column[] = sameCategory.map((product) =>
+  const columns: Column[] = inGroup.map((product) =>
     buildColumn(product, capped.find((s) => s.slug === product.slug) ?? { slug: product.slug }),
   );
 
@@ -175,9 +177,17 @@ export default async function ComparePage({
     }
   }
 
-  const gridCols = `minmax(132px,168px) repeat(${columns.length}, minmax(228px, 1fr))`;
-  const cell = "border-b border-border-subtle px-3 py-3";
-  const labelCell = `${cell} bg-surface-muted text-xs font-semibold uppercase tracking-wide text-ink-muted`;
+  // Equal-width product columns that share whatever space is left after the
+  // label column. minmax(0,1fr) rather than a minimum width, so two or three
+  // columns fit the desktop viewport instead of forcing the container to
+  // scroll.
+  const gridCols = `140px repeat(${columns.length}, minmax(0, 1fr))`;
+  const cell = "border-b border-border-subtle px-2.5 py-3 sm:px-3";
+  // Sticky so the attribute label stays readable while the columns scroll on a
+  // narrow screen — otherwise you scroll right and lose what the row means.
+  const labelCell =
+    `${cell} sticky left-0 z-10 bg-surface-muted text-[11px] font-semibold uppercase ` +
+    "tracking-wide text-ink-muted sm:text-xs";
 
   return (
     <>
@@ -201,20 +211,27 @@ export default async function ComparePage({
           </ul>
         )}
 
+        {/* Scrolling is confined to this container: the page itself never
+            scrolls sideways. Below `lg` the grid keeps a floor width so columns
+            stay readable and the container scrolls; from `lg` the floor is
+            removed and the whole table fits. */}
         <div className="overflow-x-auto rounded-lg border border-border-subtle bg-surface">
-          <div className="grid min-w-max" style={{ gridTemplateColumns: gridCols }}>
+          <div
+            className="grid min-w-[600px] lg:min-w-0"
+            style={{ gridTemplateColumns: gridCols }}
+          >
             {/* ---- product ---- */}
             <div className={`${labelCell} flex items-end`}>Product</div>
             {columns.map((column) => {
               const gallery = imagesForColor(column.product, column.selection.colorId);
               return (
                 <div key={`head-${column.product.slug}`} className={cell}>
-                  <div className="relative mx-auto aspect-square w-full max-w-[180px] rounded bg-surface-image">
+                  <div className="relative mx-auto aspect-square w-full max-w-[110px] rounded bg-surface-image sm:max-w-[132px]">
                     <Image
                       src={gallery[0].src}
                       alt={gallery[0].alt}
                       fill
-                      sizes="180px"
+                      sizes="132px"
                       className="object-contain"
                     />
                   </div>
@@ -388,7 +405,7 @@ export default async function ComparePage({
             {/* ---- cart ---- */}
             <div className={`${labelCell} border-b-0`}>Buy</div>
             {columns.map((column) => (
-              <div key={`cart-${column.product.slug}`} className="border-b-0 px-3 py-3">
+              <div key={`cart-${column.product.slug}`} className="border-b-0 px-2.5 py-3 sm:px-3">
                 <CompareAddToCart
                   variantId={column.variant?.id}
                   available={column.variant?.available ?? false}

@@ -16,6 +16,9 @@ interface MiniProduct {
   imageAlt: string;
 }
 
+// The tray only ever holds one group, because the selection control enforces
+// that before anything reaches here.
+
 /**
  * Appears once something is selected and persists across navigation and
  * refresh, because the selection lives in the store rather than in the page.

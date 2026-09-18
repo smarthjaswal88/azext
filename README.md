@@ -193,8 +193,10 @@ Optional throughout: every product can be bought from its own page without ever 
 
 | Decision | Reasoning |
 |---|---|
-| Up to **three products, one category** | Comparing a sweater against headphones has no shared specifications to align. |
-| A category clash **asks** rather than clearing | Silently discarding three considered choices because someone clicked the wrong thing is worse than one extra click. |
+| Up to **three products, one comparison group** | A group is a category today. Comparing a sweater against headphones has no shared specification rows to align, so the table would be noise. |
+| The group rule is enforced in **four places** | The selection control, the comparison page's URL parsing, the tray summary endpoint and the AI endpoint. Any one of them alone can be bypassed. |
+| The page **trims**, the AI endpoint **refuses** | A URL can be hand-edited and should still render something. A paid request with a mixed set means the caller is not the UI, and answering about a subset would spend money on a question nobody asked. |
+| A group clash **asks** rather than clearing | Silently discarding three considered choices because someone clicked the wrong thing is worse than one extra click. |
 | The tray stores **only slugs** | Titles, images and prices are resolved server-side, so nothing in browser storage can go stale or be edited. |
 | Selections live in the **URL** on the comparison page | A comparison can be bookmarked, shared and reopened. Invalid or unknown ids are dropped with a notice rather than trusted. |
 | Clothing needs an **explicit size** before Add to cart | The size axis is never defaulted. Guessing a size on a shopper's behalf produces a wrong order. |

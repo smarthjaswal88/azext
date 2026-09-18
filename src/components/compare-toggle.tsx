@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useCompareEntries, useCompareStore } from "@/lib/compare-store";
 import { MAX_COMPARE } from "@/lib/compare";
-import type { CategoryId } from "@/lib/types";
+import {
+  comparisonGroupLabel,
+  type ComparisonGroup,
+} from "@/lib/comparison-group";
 import { CheckIcon, CompareIcon } from "./icons";
 
 /**
@@ -14,19 +17,17 @@ import { CheckIcon, CompareIcon } from "./icons";
  * on cards it is rendered outside the anchor so it is not a nested interactive
  * element.
  *
- * A category clash is never resolved silently. The shopper is asked, and can
- * decline — clearing three considered choices because someone clicked the wrong
- * thing would be worse than an extra click.
+ * A comparison-group clash is never resolved silently. The shopper is asked and
+ * can decline — clearing three considered choices because someone clicked the
+ * wrong thing would be worse than an extra click.
  */
 export function CompareToggle({
   slug,
-  category,
-  categoryLabel,
+  group,
   variant = "card",
 }: {
   slug: string;
-  category: CategoryId;
-  categoryLabel: string;
+  group: ComparisonGroup;
   variant?: "card" | "detail";
 }) {
   const entries = useCompareEntries();
@@ -35,7 +36,7 @@ export function CompareToggle({
   const replaceWith = useCompareStore((s) => s.replaceWith);
 
   const [message, setMessage] = useState<string | undefined>();
-  const [clash, setClash] = useState<{ current: CategoryId } | undefined>();
+  const [clash, setClash] = useState<{ current: ComparisonGroup } | undefined>();
 
   const ready = entries !== undefined;
   const selected = entries?.some((e) => e.slug === slug) ?? false;
@@ -48,10 +49,10 @@ export function CompareToggle({
       remove(slug);
       return;
     }
-    const result = add(slug, category);
+    const result = add(slug, group);
     if (result.status === "full") {
       setMessage(`You can compare ${MAX_COMPARE} products at once. Remove one to add another.`);
-    } else if (result.status === "category_mismatch") {
+    } else if (result.status === "group_mismatch") {
       setClash({ current: result.current });
     }
   }
@@ -90,28 +91,32 @@ export function CompareToggle({
       )}
 
       {clash && (
-        <div role="alertdialog" aria-label="Switch comparison category" className="mt-2 rounded-md border border-border-strong bg-surface-muted p-2.5">
+        <div
+          role="alertdialog"
+          aria-label="Switch comparison group"
+          className="mt-2 rounded-md border border-border-strong bg-surface-muted p-2.5"
+        >
           <p className="text-xs leading-snug">
-            Your comparison currently holds {clash.current}. Products can only be compared within
-            one category.
+            Your comparison currently holds {comparisonGroupLabel(clash.current).toLowerCase()}.
+            Products can only be compared within one group.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => {
-                replaceWith(slug, category);
+                replaceWith(slug, group);
                 setClash(undefined);
               }}
               className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-ink hover:bg-accent-hover"
             >
-              Start a {categoryLabel.toLowerCase()} comparison
+              Start a {comparisonGroupLabel(group).toLowerCase()} comparison
             </button>
             <button
               type="button"
               onClick={() => setClash(undefined)}
               className="rounded-full border border-border-strong bg-surface px-3 py-1 text-xs font-medium hover:bg-surface-muted"
             >
-              Keep my {clash.current} comparison
+              Keep my {comparisonGroupLabel(clash.current).toLowerCase()} comparison
             </button>
           </div>
         </div>

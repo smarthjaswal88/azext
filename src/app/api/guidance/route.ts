@@ -24,6 +24,7 @@ import {
   type GuidanceColumn,
 } from "@/server/ai/guidance";
 import { costMicros, DEEPSEEK_MODEL, reservationMicros } from "@/server/ai/pricing";
+import { sharedComparisonGroup } from "@/lib/comparison-group";
 import { CATALOG_VERSION, getProductsBySlugs } from "@/server/catalog";
 
 /** Refuses anything larger outright rather than parsing it. */
@@ -124,10 +125,23 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const category = products[0].category;
-  const sameCategory = products.filter((p) => p.category === category);
+  // Refused rather than trimmed. The comparison page trims, because a URL can
+  // be typed by hand and should still render something. A paid request is
+  // different: a mixed set means the caller is not the UI, and quietly
+  // answering a question about a subset would spend money on something nobody
+  // asked for.
+  if (!sharedComparisonGroup(products)) {
+    return NextResponse.json(
+      {
+        error: "invalid_request",
+        message: "Products can only be compared within one group.",
+        retryable: false,
+      },
+      { status: 400 },
+    );
+  }
 
-  const columns: GuidanceColumn[] = sameCategory.map((product) => {
+  const columns: GuidanceColumn[] = products.map((product) => {
     const requested = parsed.items.find((i) => i.slug === product.slug);
     return resolveColumn(product, requested?.colorId, requested?.sizeId);
   });
