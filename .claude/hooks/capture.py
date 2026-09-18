@@ -371,9 +371,19 @@ def handle_response(payload):
         return  # already logged this turn; Stop can fire more than once
 
     records = load_transcript(payload.get("transcript_path"))
-    text, last_uuid = final_response(records)
+    parsed, last_uuid = final_response(records)
     if last_uuid and last_uuid == st.get("last_logged_uuid"):
         return
+
+    # The Stop payload carries the turn's final assistant message directly, and
+    # it is authoritative. The transcript JSONL is flushed asynchronously, so
+    # reading it here races the writer: on turn 1 of session 9dc090cc the hook
+    # read the file 53ms after the message was generated and got nothing back,
+    # logging an empty response for a 3917-character answer. Prefer the payload
+    # and fall back to transcript parsing only when the field is absent.
+    from_payload = (payload.get("last_assistant_message") or "").strip()
+    text = from_payload or parsed
+    st["last_source"] = "payload" if from_payload else ("transcript" if parsed else "none")
 
     model = current_turn_model(records) or st.get("model") or "unknown"
     if not text:
