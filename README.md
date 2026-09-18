@@ -191,11 +191,26 @@ recorded here. These are our choices, not observations of any other retailer.
 
 Optional throughout: every product can be bought from its own page without ever opening it.
 
+**Comparison groups**, which decide what may be compared with what:
+
+| Group | Holds | Products |
+|---|---|---|
+| `personal-audio` | headphones and earbuds | 6 |
+| `shirts-and-tops` | shirts and tees | 3 |
+| `knitwear-and-layers` | sweaters and fleeces | 2 |
+| `trousers` | trousers | 1 |
+
+The group is a field on the product (`Product.comparisonGroup`), not something
+inferred from the category at the point of use, so there is one definition. Note that
+`trousers` currently holds a single product: the selection control explains that rather than
+offering a comparison that cannot happen.
+
 | Decision | Reasoning |
 |---|---|
-| Up to **three products, one comparison group** | A group is a category today. Comparing a sweater against headphones has no shared specification rows to align, so the table would be noise. |
+| Up to **three products, one comparison group** | Groups are finer than categories, because "clothing" is not a comparable set — a chino and a t-shirt share almost no specification rows, so the table would be mostly "Not provided". |
 | The group rule is enforced in **four places** | The selection control, the comparison page's URL parsing, the tray summary endpoint and the AI endpoint. Any one of them alone can be bypassed. |
-| The page **trims**, the AI endpoint **refuses** | A URL can be hand-edited and should still render something. A paid request with a mixed set means the caller is not the UI, and answering about a subset would spend money on a question nobody asked. |
+| A mixed URL **asks**, it does not pick | Quietly dropping half of a link and showing the rest as though it were the request is worse than asking. The page lists what the link contains and offers each group as a choice. The AI endpoint refuses outright, since a mixed set there means the caller is not the UI. |
+| A group holding **one product** says so | The control explains that there is nothing to compare against rather than offering a button that can never reach two columns. Trousers is such a group today. |
 | A group clash **asks** rather than clearing | Silently discarding three considered choices because someone clicked the wrong thing is worse than one extra click. |
 | The tray stores **only slugs** | Titles, images and prices are resolved server-side, so nothing in browser storage can go stale or be edited. |
 | Selections live in the **URL** on the comparison page | A comparison can be bookmarked, shared and reopened. Invalid or unknown ids are dropped with a notice rather than trusted. |

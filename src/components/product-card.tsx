@@ -9,7 +9,14 @@ import { RatingLine } from "./star-rating";
 
 /** Fixed-height regions so a grid of cards lines up: square image area, title
  *  clamped to two lines, then rating and price pinned to the bottom. */
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+  groupSize,
+}: {
+  product: Product;
+  /** Products sharing this product's comparison group. */
+  groupSize: number;
+}) {
   const firstColor = product.optionAxes.find((a) => a.key === "color")?.values[0];
   const image = imagesForColor(product, firstColor?.id)[0];
   const price = fromPriceCents(product);
@@ -74,7 +81,11 @@ export function ProductCard({ product }: { product: Product }) {
 
           {/* Outside the product link on purpose: a button nested in an anchor
               is not a valid or predictable control. */}
-          <CompareToggle slug={product.slug} group={comparisonGroupOf(product)} />
+          <CompareToggle
+            slug={product.slug}
+            group={comparisonGroupOf(product)}
+            groupSize={groupSize}
+          />
         </div>
       </div>
     </article>

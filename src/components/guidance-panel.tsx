@@ -8,7 +8,7 @@ import {
   type GuidanceResult,
 } from "@/lib/guidance";
 import { formatPrice } from "@/lib/format";
-import type { CategoryId } from "@/lib/types";
+import type { ComparisonGroupId } from "@/lib/types";
 
 export interface GuidanceItem {
   slug: string;
@@ -17,9 +17,11 @@ export interface GuidanceItem {
   sizeId?: string;
 }
 
-const PLACEHOLDERS: Record<CategoryId, string> = {
-  headphones: "Work calls, comfort, under $150.",
-  clothing: "Office wear, relaxed fit, easy care.",
+const PLACEHOLDERS: Record<ComparisonGroupId, string> = {
+  "personal-audio": "Work calls, comfort, under $150.",
+  "shirts-and-tops": "Office wear, relaxed fit, easy care.",
+  "knitwear-and-layers": "Warm without bulk, easy care, under $120.",
+  trousers: "Office wear, room through the thigh, easy care.",
 };
 
 const CONFIDENCE_STYLES: Record<string, string> = {
@@ -46,11 +48,11 @@ type Phase =
  */
 export function GuidancePanel({
   items,
-  category,
+  group,
   aiAvailable,
 }: {
   items: GuidanceItem[];
-  category: CategoryId;
+  group: ComparisonGroupId;
   aiAvailable: boolean;
 }) {
   const [preferences, setPreferences] = useState("");
@@ -152,7 +154,7 @@ export function GuidancePanel({
           value={preferences}
           onChange={(e) => setPreferences(e.target.value.slice(0, MAX_PREFERENCE_CHARS))}
           rows={2}
-          placeholder={`For example: ${PLACEHOLDERS[category]}`}
+          placeholder={`For example: ${PLACEHOLDERS[group]}`}
           className="mt-1.5 w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-sm"
         />
         <div className="mt-1 flex items-center justify-between gap-3">

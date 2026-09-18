@@ -180,6 +180,7 @@ const HEADPHONES: Product[] = [
     title: "Aureal H9 Wireless Noise-Cancelling Over-Ear Headphones",
     brand: "Aureal",
     category: "headphones",
+    comparisonGroup: "personal-audio",
     summary:
       "Adaptive noise cancelling with a 40-hour battery, built for long flights and open-plan offices.",
     images: images("aureal-h9-anc", AUREAL_COLORS, "Aureal H9 headphones"),
@@ -239,6 +240,7 @@ const HEADPHONES: Product[] = [
     title: "Nordwave Drift Wireless Over-Ear Headphones",
     brand: "Nordwave",
     category: "headphones",
+    comparisonGroup: "personal-audio",
     summary:
       "A lightweight everyday pair with a warm tuning and 30-hour battery, without noise cancelling.",
     images: images("nordwave-drift", NORDWAVE_COLORS, "Nordwave Drift headphones"),
@@ -289,6 +291,7 @@ const HEADPHONES: Product[] = [
     title: "Kestrel Audio K2 Studio Monitor Headphones",
     brand: "Kestrel Audio",
     category: "headphones",
+    comparisonGroup: "personal-audio",
     summary:
       "Wired closed-back monitors with a deliberately flat response, intended for mixing rather than listening.",
     images: images("kestrel-k2-studio", KESTREL_COLORS, "Kestrel K2 studio headphones"),
@@ -338,6 +341,7 @@ const HEADPHONES: Product[] = [
     title: "Lumen Acoustics Halo Open-Back Reference Headphones",
     brand: "Lumen Acoustics",
     category: "headphones",
+    comparisonGroup: "personal-audio",
     summary:
       "Open-back reference headphones with a wide soundstage. They leak sound in both directions by design.",
     images: images("lumen-halo-open", LUMEN_COLORS, "Lumen Halo open-back headphones"),
@@ -388,6 +392,7 @@ const HEADPHONES: Product[] = [
     title: "Pinebank Trail Buds True Wireless Earbuds",
     brand: "Pinebank",
     category: "headphones",
+    comparisonGroup: "personal-audio",
     summary:
       "Sweat-resistant true wireless earbuds with a secure fit, aimed at running and gym use.",
     images: images("pinebank-trail-buds", PINEBANK_COLORS, "Pinebank Trail Buds earbuds"),
@@ -447,6 +452,7 @@ const HEADPHONES: Product[] = [
     title: "Verso Compact On-Ear Bluetooth Headphones",
     brand: "Verso",
     category: "headphones",
+    comparisonGroup: "personal-audio",
     summary:
       "Folding on-ear headphones for commuting, with a 24-hour battery and a soft carry pouch.",
     images: images("verso-compact-on-ear", VERSO_COLORS, "Verso Compact on-ear headphones"),
@@ -537,6 +543,7 @@ const CLOTHING: Product[] = [
     title: "Fieldhouse Heavyweight Cotton T-Shirt",
     brand: "Fieldhouse",
     category: "clothing",
+    comparisonGroup: "shirts-and-tops",
     summary:
       "A 240 gsm cotton tee with a boxy cut and reinforced collar, made to survive repeated washing.",
     images: images("fieldhouse-heavyweight-tee", FIELDHOUSE_COLORS, "Fieldhouse heavyweight tee"),
@@ -593,6 +600,7 @@ const CLOTHING: Product[] = [
     title: "Meridian Oxford Button-Down Shirt",
     brand: "Meridian",
     category: "clothing",
+    comparisonGroup: "shirts-and-tops",
     summary:
       "A washed oxford shirt with a soft roll collar, cut slim through the body without being tight.",
     images: images("meridian-oxford-shirt", MERIDIAN_COLORS, "Meridian oxford shirt"),
@@ -645,6 +653,7 @@ const CLOTHING: Product[] = [
     title: "Torrey Merino Wool Crew Neck Sweater",
     brand: "Torrey",
     category: "clothing",
+    comparisonGroup: "knitwear-and-layers",
     summary:
       "A fine-gauge merino crew that layers under a jacket without bulk, in a mid-weight 18.5 micron yarn.",
     images: images("torrey-merino-crew", TORREY_COLORS, "Torrey merino crew sweater"),
@@ -694,6 +703,7 @@ const CLOTHING: Product[] = [
     title: "Coastline Linen Camp Collar Shirt",
     brand: "Coastline",
     category: "clothing",
+    comparisonGroup: "shirts-and-tops",
     summary:
       "A relaxed camp collar shirt in washed European linen, cut long enough to wear untucked.",
     images: images("coastline-linen-shirt", COASTLINE_COLORS, "Coastline linen camp shirt"),
@@ -744,6 +754,7 @@ const CLOTHING: Product[] = [
     title: "Rampart Straight-Leg Cotton Chino Trousers",
     brand: "Rampart",
     category: "clothing",
+    comparisonGroup: "trousers",
     summary:
       "A straight-leg chino in mid-weight twill with a touch of stretch, unhemmed for tailoring.",
     images: images("rampart-chino", RAMPART_COLORS, "Rampart straight-leg chino"),
@@ -794,6 +805,7 @@ const CLOTHING: Product[] = [
     title: "Summit Quarter-Zip Recycled Fleece",
     brand: "Summit",
     category: "clothing",
+    comparisonGroup: "knitwear-and-layers",
     summary:
       "A grid-fleece quarter-zip in recycled polyester, warm for its weight and quick to dry.",
     images: images("summit-quarter-zip", SUMMIT_COLORS, "Summit quarter-zip fleece"),

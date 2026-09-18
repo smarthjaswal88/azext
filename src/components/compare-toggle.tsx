@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useCompareEntries, useCompareStore } from "@/lib/compare-store";
 import { MAX_COMPARE } from "@/lib/compare";
 import {
+  comparisonGroupDescription,
   comparisonGroupLabel,
   type ComparisonGroup,
 } from "@/lib/comparison-group";
@@ -24,10 +25,13 @@ import { CheckIcon, CompareIcon } from "./icons";
 export function CompareToggle({
   slug,
   group,
+  groupSize,
   variant = "card",
 }: {
   slug: string;
   group: ComparisonGroup;
+  /** How many products exist in this group, including this one. */
+  groupSize: number;
   variant?: "card" | "detail";
 }) {
   const entries = useCompareEntries();
@@ -40,6 +44,9 @@ export function CompareToggle({
 
   const ready = entries !== undefined;
   const selected = entries?.some((e) => e.slug === slug) ?? false;
+  // Comparison needs two columns. A group holding only this product can never
+  // get there, so say so instead of offering a control that leads nowhere.
+  const alone = groupSize < 2;
 
   function onToggle() {
     setMessage(undefined);
@@ -58,6 +65,17 @@ export function CompareToggle({
   }
 
   const isDetail = variant === "detail";
+
+  if (alone) {
+    return (
+      <p
+        className={`${isDetail ? "mt-3" : "mt-2"} rounded-md border border-border-subtle bg-surface-muted px-2 py-1.5 text-xs leading-snug text-ink-muted`}
+      >
+        Nothing to compare this with yet — {comparisonGroupDescription(group)} are only compared
+        against each other, and this is the only one in the catalog.
+      </p>
+    );
+  }
 
   return (
     <div className={isDetail ? "mt-3" : "mt-2"}>
@@ -97,8 +115,8 @@ export function CompareToggle({
           className="mt-2 rounded-md border border-border-strong bg-surface-muted p-2.5"
         >
           <p className="text-xs leading-snug">
-            Your comparison currently holds {comparisonGroupLabel(clash.current).toLowerCase()}.
-            Products can only be compared within one group.
+            Your comparison currently holds {comparisonGroupDescription(clash.current)}. Products
+            are only compared within one group, so adding this means starting again.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button
@@ -109,14 +127,14 @@ export function CompareToggle({
               }}
               className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-ink hover:bg-accent-hover"
             >
-              Start a {comparisonGroupLabel(group).toLowerCase()} comparison
+              Compare {comparisonGroupDescription(group)} instead
             </button>
             <button
               type="button"
               onClick={() => setClash(undefined)}
               className="rounded-full border border-border-strong bg-surface px-3 py-1 text-xs font-medium hover:bg-surface-muted"
             >
-              Keep my {comparisonGroupLabel(clash.current).toLowerCase()} comparison
+              Keep my {comparisonGroupLabel(clash.current).toLowerCase()} selection
             </button>
           </div>
         </div>

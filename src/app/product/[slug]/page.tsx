@@ -16,7 +16,11 @@ import {
   type Selection,
 } from "@/lib/product";
 import type { OptionKey, Product, Variant } from "@/lib/types";
-import { getCategory, getProductBySlug } from "@/server/catalog";
+import {
+  countProductsInComparisonGroup,
+  getCategory,
+  getProductBySlug,
+} from "@/server/catalog";
 
 type RawParams = Record<string, string | string[] | undefined>;
 
@@ -67,6 +71,7 @@ export default async function ProductPage({
 
   const sp = await searchParams;
   const category = await getCategory(product.category);
+  const groupSize = await countProductsInComparisonGroup(product.comparisonGroup);
 
   const colorAxis = product.optionAxes.find((a) => a.key === "color");
   const sizeAxis = product.optionAxes.find((a) => a.key === "size");
@@ -275,6 +280,7 @@ export default async function ProductPage({
               <CompareToggle
                 slug={product.slug}
                 group={comparisonGroupOf(product)}
+                groupSize={groupSize}
                 variant="detail"
               />
 

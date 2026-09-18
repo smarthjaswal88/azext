@@ -2,6 +2,19 @@
 
 export type CategoryId = "headphones" | "clothing";
 
+/**
+ * The set a product must share before it can be compared against another.
+ *
+ * Finer than category on purpose. "Clothing" is not a comparable set: a chino
+ * and a t-shirt have almost no specification rows in common, so a table of them
+ * is mostly "Not provided". These groups are chosen so the rows line up.
+ */
+export type ComparisonGroupId =
+  | "personal-audio"
+  | "shirts-and-tops"
+  | "knitwear-and-layers"
+  | "trousers";
+
 export interface Category {
   id: CategoryId;
   name: string;
@@ -84,6 +97,8 @@ export interface Product {
   title: string;
   brand: string;
   category: CategoryId;
+  /** Which products this one may be compared against. See ComparisonGroupId. */
+  comparisonGroup: ComparisonGroupId;
   summary: string;
   images: ProductImage[];
   optionAxes: OptionAxis[];

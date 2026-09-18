@@ -7,7 +7,10 @@ import { SortSelect } from "@/components/sort-select";
 import { parseDollarsToCents } from "@/lib/format";
 import { SORT_OPTIONS } from "@/lib/sort";
 import type { CategoryId, SortKey } from "@/lib/types";
-import { getCategories, getPriceBounds, searchProducts } from "@/server/catalog";
+import {
+  getCategories, getPriceBounds, searchProducts ,
+  getComparisonGroupCounts,
+} from "@/server/catalog";
 
 export const metadata = { title: "Search" };
 
@@ -25,6 +28,7 @@ export default async function SearchPage({
   const params = await searchParams;
   const categories = await getCategories();
   const bounds = await getPriceBounds();
+  const groupCounts = await getComparisonGroupCounts();
 
   const q = one(params, "q");
   const rawCategory = one(params, "category");
@@ -123,7 +127,11 @@ export default async function SearchPage({
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {results.map((p) => (
-                  <ProductCard key={p.id} product={p} />
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    groupSize={groupCounts[p.comparisonGroup]}
+                  />
                 ))}
               </div>
             )}

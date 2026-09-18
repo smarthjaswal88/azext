@@ -13,6 +13,7 @@
 import type {
   Category,
   CategoryId,
+  ComparisonGroupId,
   Product,
   SearchQuery,
   SortKey,
@@ -141,6 +142,29 @@ export async function searchProducts(query: SearchQuery): Promise<Product[]> {
   }
 
   return sortProducts(results, query.sort);
+}
+
+/** Counts for every group in one pass, for pages rendering a grid of cards. */
+export async function getComparisonGroupCounts(): Promise<
+  Record<ComparisonGroupId, number>
+> {
+  const counts = {
+    "personal-audio": 0,
+    "shirts-and-tops": 0,
+    "knitwear-and-layers": 0,
+    trousers: 0,
+  } as Record<ComparisonGroupId, number>;
+  for (const product of DEMO_PRODUCTS) counts[product.comparisonGroup] += 1;
+  return counts;
+}
+
+/** How many products share a group. The selection control needs this to say
+ *  "there is nothing else here to compare against" rather than offering a
+ *  comparison that can never reach two columns. */
+export async function countProductsInComparisonGroup(
+  group: ComparisonGroupId,
+): Promise<number> {
+  return DEMO_PRODUCTS.filter((p) => p.comparisonGroup === group).length;
 }
 
 /** Resolves several slugs at once, preserving the order asked for and dropping

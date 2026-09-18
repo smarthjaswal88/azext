@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
 import { SiteHeader } from "@/components/site-header";
-import { getCategories, getFeaturedProducts } from "@/server/catalog";
+import {
+  getCategories, getFeaturedProducts ,
+  getComparisonGroupCounts,
+} from "@/server/catalog";
 
 export default async function HomePage() {
   const categories = await getCategories();
+  const groupCounts = await getComparisonGroupCounts();
   const [headphones, clothing] = await Promise.all([
     getFeaturedProducts("headphones", 6),
     getFeaturedProducts("clothing", 6),
@@ -64,7 +68,11 @@ export default async function HomePage() {
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
               {products.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  groupSize={groupCounts[p.comparisonGroup]}
+                />
               ))}
             </div>
           </section>

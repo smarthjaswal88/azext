@@ -11,7 +11,11 @@ import {
   MIN_COMPARE,
   type CompareSelection,
 } from "@/lib/compare";
-import { comparisonGroupOf } from "@/lib/comparison-group";
+import {
+  comparisonGroupDescription,
+  comparisonGroupLabel,
+  comparisonGroupOf,
+} from "@/lib/comparison-group";
 import { formatCount, formatPrice } from "@/lib/format";
 import { discountPercent, findVariant, imagesForColor } from "@/lib/product";
 import type { OptionKey, Product, Variant } from "@/lib/types";
@@ -119,18 +123,75 @@ export default async function ComparePage({
     notices.push(`Only the first ${MAX_COMPARE} products are shown.`);
   }
 
-  // One comparison group at a time. A URL naming products from two groups is
-  // trimmed to the first product's group and says so, rather than rendering a
-  // table whose rows cannot line up.
-  const group = products[0] ? comparisonGroupOf(products[0]) : undefined;
-  const inGroup = products.filter((p) => comparisonGroupOf(p) === group);
-  if (inGroup.length < products.length) {
-    notices.push(
-      "Products can only be compared within one group, so items from another group were left out.",
+  // One comparison group at a time. When a URL names more than one, we do NOT
+  // pick a subset on the shopper's behalf — quietly dropping half of what they
+  // asked for and showing the rest as though it were the request is worse than
+  // asking. They are shown what is in the link and choose which group to open.
+  const groupsPresent = [...new Set(products.map(comparisonGroupOf))];
+
+  if (groupsPresent.length > 1) {
+    return (
+      <>
+        <SiteHeader />
+        <main className="mx-auto w-full max-w-[1500px] flex-1 px-3 py-6 sm:px-4">
+          <h1 className="text-xl font-bold sm:text-2xl">Compare products</h1>
+          <div className="mt-4 rounded-lg border border-border-subtle bg-surface p-4 sm:p-6">
+            <h2 className="text-base font-semibold">
+              This link mixes {groupsPresent.length} kinds of product
+            </h2>
+            <p className="mt-1.5 max-w-prose text-sm text-ink-muted">
+              Products are only compared against similar ones, so that the rows line up and mean
+              something. Pick which set you would like to see — nothing has been chosen for you.
+            </p>
+
+            <ul className="mt-4 space-y-3">
+              {groupsPresent.map((g) => {
+                const inThisGroup = products.filter((p) => comparisonGroupOf(p) === g);
+                const selections = inThisGroup.map(
+                  (p) => capped.find((c) => c.slug === p.slug) ?? { slug: p.slug },
+                );
+                return (
+                  <li
+                    key={g}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border-subtle bg-surface-muted p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{comparisonGroupLabel(g)}</p>
+                      <p className="text-xs text-ink-muted">
+                        {inThisGroup.map((p) => p.title).join(" · ")}
+                      </p>
+                    </div>
+                    {inThisGroup.length >= MIN_COMPARE ? (
+                      <Link
+                        href={compareHref(selections)}
+                        className="shrink-0 rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-ink hover:bg-accent-hover"
+                      >
+                        Compare these {inThisGroup.length}
+                      </Link>
+                    ) : (
+                      <span className="shrink-0 text-xs text-ink-muted">
+                        Only one here — add another to compare
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            <Link
+              href="/search"
+              className="mt-4 inline-block text-sm text-ink-link hover:underline"
+            >
+              Or keep browsing
+            </Link>
+          </div>
+        </main>
+      </>
     );
   }
 
-  const columns: Column[] = inGroup.map((product) =>
+  const group = groupsPresent[0];
+  const columns: Column[] = products.map((product) =>
     buildColumn(product, capped.find((s) => s.slug === product.slug) ?? { slug: product.slug }),
   );
 
@@ -152,8 +213,10 @@ export default async function ComparePage({
               Pick at least {MIN_COMPARE} products to compare.
             </p>
             <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
-              Use &ldquo;Add to compare&rdquo; on any product, then open the comparison from the
-              tray. Comparison is optional — you can buy anything without it.
+              {group
+                ? `Add another item from ${comparisonGroupDescription(group)} — products are only compared against similar ones.`
+                : "Use “Add to compare” on any product, then open the comparison from the tray."}{" "}
+              Comparison is optional — you can buy anything without it.
             </p>
             <Link
               href="/search"
@@ -435,7 +498,7 @@ export default async function ComparePage({
             colorId: column.selection.colorId,
             sizeId: column.selection.sizeId,
           }))}
-          category={columns[0].product.category}
+          group={columns[0].product.comparisonGroup}
           aiAvailable={readAiAvailability().available}
         />
 
