@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { clampQuantity, MAX_QUANTITY_PER_LINE, type CartItem } from "./cart";
+import { clampQuantity, type CartItem } from "./cart";
 
 interface CartState {
   items: CartItem[];
@@ -86,5 +86,3 @@ export function useCartItems(): CartItem[] | undefined {
     () => undefined,
   );
 }
-
-export { MAX_QUANTITY_PER_LINE };

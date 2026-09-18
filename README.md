@@ -6,9 +6,9 @@ Shoppers browse, pick a product and check out directly. Alternatively they can c
 three products using specifications, ratings, review insights and their own stated preferences.
 
 **Built so far:** a demo catalog, search with filtering and sorting, product detail pages, a
-persisted cart, and a simulated checkout that records demo orders.
-**Not built:** product comparison, AI explanations, authentication, real payment. You will not
-find buttons for those — an absence is clearer than a control that does nothing.
+persisted cart, a simulated checkout that records demo orders, and optional product comparison.
+**Not built:** AI explanations, authentication, real payment. You will not find buttons for
+those — an absence is clearer than a control that does nothing.
 
 All products, prices, images and reviews are invented for this prototype.
 
@@ -129,9 +129,11 @@ src/app/
   search/page.tsx       results, filters, sorting
   product/[slug]/       product detail
   cart/page.tsx         cart
+  compare/page.tsx      optional comparison, up to three products
   checkout/page.tsx     simulated checkout
   order/[token]/        order confirmation, readable after a refresh
   api/cart/summary/     prices a cart from the catalog
+  api/compare/summary/  thumbnails and names for the comparison tray
   api/orders/           places a demo order
 src/components/         presentational pieces used by more than one page
 src/lib/                types and pure helpers, safe on client or server
@@ -184,6 +186,24 @@ recorded here. These are our choices, not observations of any other retailer.
 | A product matches a price filter when **any variant** falls in range | The shopper can select that variant. |
 | Specs reading "None" are **excluded from search text** | Otherwise searching "noise cancelling" returns every pair of headphones, including those that say "None". |
 
+### Comparison
+
+Optional throughout: every product can be bought from its own page without ever opening it.
+
+| Decision | Reasoning |
+|---|---|
+| Up to **three products, one category** | Comparing a sweater against headphones has no shared specifications to align. |
+| A category clash **asks** rather than clearing | Silently discarding three considered choices because someone clicked the wrong thing is worse than one extra click. |
+| The tray stores **only slugs** | Titles, images and prices are resolved server-side, so nothing in browser storage can go stale or be edited. |
+| Selections live in the **URL** on the comparison page | A comparison can be bookmarked, shared and reopened. Invalid or unknown ids are dropped with a notice rather than trusted. |
+| Clothing needs an **explicit size** before Add to cart | The size axis is never defaulted. Guessing a size on a shopper's behalf produces a wrong order. |
+| Missing specifications read **"Not provided"** | Never a value borrowed from the neighbouring column, and never invented. |
+| Review excerpts state **how many records actually exist** | The catalog holds three or four real review records per product while the aggregate figure is in the hundreds. The page says so rather than implying the aggregate was read. |
+
+Two further row groups — "Review confidence" and "Match for your needs" — are planned for the
+DeepSeek step. They are deliberately **not** stubbed out: an empty panel promising analysis that
+does not exist would be worse than no panel.
+
 ### Search behaviour, stated precisely
 
 Terms are split on whitespace and AND-ed; each must appear in the product's title, brand,
@@ -204,7 +224,7 @@ blocks this step. Both are recorded in `recon/notes.md` §5.2b against the step 
 | 1 | Scaffold: App Router, TypeScript, Tailwind, ESLint | done |
 | 2a | Catalog, search, product details | done |
 | 2b | Cart and simulated checkout | done |
-| 3 | Optional comparison for up to three products | not started |
+| 3 | Optional comparison for up to three products | done |
 | 4 | Review-confidence and personal-suitability explanations via DeepSeek | not started |
 
 Comparison is a core feature of the submission, but it stays optional in the shopper journey:

@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { MAX_QUANTITY_PER_LINE, useCartItems, useCartStore } from "@/lib/cart-store";
+import { MAX_QUANTITY_PER_LINE } from "@/lib/cart";
+import { useCartItems, useCartStore } from "@/lib/cart-store";
 
 /** Add to cart and Buy now for the selected variant.
  *

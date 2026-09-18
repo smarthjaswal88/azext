@@ -1,0 +1,121 @@
+"use client";
+
+import { useState } from "react";
+import { useCompareEntries, useCompareStore } from "@/lib/compare-store";
+import { MAX_COMPARE } from "@/lib/compare";
+import type { CategoryId } from "@/lib/types";
+import { CheckIcon, CompareIcon } from "./icons";
+
+/**
+ * "Add to compare" for a product card or a product page.
+ *
+ * Kept deliberately separate from the product link and from the purchase
+ * buttons: it is a checkbox-like control, not a way to buy or to navigate, and
+ * on cards it is rendered outside the anchor so it is not a nested interactive
+ * element.
+ *
+ * A category clash is never resolved silently. The shopper is asked, and can
+ * decline — clearing three considered choices because someone clicked the wrong
+ * thing would be worse than an extra click.
+ */
+export function CompareToggle({
+  slug,
+  category,
+  categoryLabel,
+  variant = "card",
+}: {
+  slug: string;
+  category: CategoryId;
+  categoryLabel: string;
+  variant?: "card" | "detail";
+}) {
+  const entries = useCompareEntries();
+  const add = useCompareStore((s) => s.add);
+  const remove = useCompareStore((s) => s.remove);
+  const replaceWith = useCompareStore((s) => s.replaceWith);
+
+  const [message, setMessage] = useState<string | undefined>();
+  const [clash, setClash] = useState<{ current: CategoryId } | undefined>();
+
+  const ready = entries !== undefined;
+  const selected = entries?.some((e) => e.slug === slug) ?? false;
+
+  function onToggle() {
+    setMessage(undefined);
+    setClash(undefined);
+
+    if (selected) {
+      remove(slug);
+      return;
+    }
+    const result = add(slug, category);
+    if (result.status === "full") {
+      setMessage(`You can compare ${MAX_COMPARE} products at once. Remove one to add another.`);
+    } else if (result.status === "category_mismatch") {
+      setClash({ current: result.current });
+    }
+  }
+
+  const isDetail = variant === "detail";
+
+  return (
+    <div className={isDetail ? "mt-3" : "mt-2"}>
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={!ready}
+        aria-pressed={selected}
+        className={
+          isDetail
+            ? `flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-60 ${
+                selected
+                  ? "border-accent-ring bg-surface-muted"
+                  : "border-border-strong bg-surface hover:bg-surface-muted"
+              }`
+            : `flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition disabled:opacity-60 ${
+                selected
+                  ? "border-accent-ring bg-surface-muted"
+                  : "border-border-subtle bg-surface text-ink-muted hover:border-border-strong hover:text-ink"
+              }`
+        }
+      >
+        {selected ? <CheckIcon size={isDetail ? 16 : 13} /> : <CompareIcon size={isDetail ? 17 : 13} />}
+        {selected ? "In comparison" : "Add to compare"}
+      </button>
+
+      {message && (
+        <p role="status" className="mt-1.5 text-xs text-ink-muted">
+          {message}
+        </p>
+      )}
+
+      {clash && (
+        <div role="alertdialog" aria-label="Switch comparison category" className="mt-2 rounded-md border border-border-strong bg-surface-muted p-2.5">
+          <p className="text-xs leading-snug">
+            Your comparison currently holds {clash.current}. Products can only be compared within
+            one category.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                replaceWith(slug, category);
+                setClash(undefined);
+              }}
+              className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-ink hover:bg-accent-hover"
+            >
+              Start a {categoryLabel.toLowerCase()} comparison
+            </button>
+            <button
+              type="button"
+              onClick={() => setClash(undefined)}
+              className="rounded-full border border-border-strong bg-surface px-3 py-1 text-xs font-medium hover:bg-surface-muted"
+            >
+              Keep my {clash.current} comparison
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

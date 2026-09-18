@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CATEGORY_LABELS } from "@/lib/compare";
 import { formatPrice } from "@/lib/format";
 import { fromPriceCents, hasMultiplePrices, imagesForColor } from "@/lib/product";
 import type { Product } from "@/lib/types";
+import { CompareToggle } from "./compare-toggle";
 import { RatingLine } from "./star-rating";
 
 /** Fixed-height regions so a grid of cards lines up: square image area, title
@@ -69,6 +71,14 @@ export function ProductCard({ product }: { product: Product }) {
           {!anyStock && (
             <p className="mt-1.5 text-xs font-medium text-sale">Currently unavailable</p>
           )}
+
+          {/* Outside the product link on purpose: a button nested in an anchor
+              is not a valid or predictable control. */}
+          <CompareToggle
+            slug={product.slug}
+            category={product.category}
+            categoryLabel={CATEGORY_LABELS[product.category]}
+          />
         </div>
       </div>
     </article>

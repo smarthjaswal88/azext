@@ -2,8 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCart } from "@/components/add-to-cart";
+import { CompareToggle } from "@/components/compare-toggle";
 import { SiteHeader } from "@/components/site-header";
 import { RatingLine, StarRow } from "@/components/star-rating";
+import { CATEGORY_LABELS } from "@/lib/compare";
 import { formatCount, formatPrice } from "@/lib/format";
 import {
   discountPercent,
@@ -269,6 +271,13 @@ export default async function ProductPage({
               </dl>
 
               <AddToCart variantId={variant.id} available={variant.available} />
+
+              <CompareToggle
+                slug={product.slug}
+                category={product.category}
+                categoryLabel={CATEGORY_LABELS[product.category]}
+                variant="detail"
+              />
 
               <p className="mt-4 rounded-md bg-surface-muted p-3 text-xs text-ink-muted">
                 Simulated checkout — no payment is taken and nothing ships.

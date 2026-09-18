@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { MAX_QUANTITY_PER_LINE, useCartItems, useCartStore } from "@/lib/cart-store";
+import { MAX_QUANTITY_PER_LINE } from "@/lib/cart";
+import { useCartItems, useCartStore } from "@/lib/cart-store";
 import { formatPrice } from "@/lib/format";
 import { useCartSummary } from "@/lib/use-cart-summary";
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CompareTray } from "@/components/compare-tray";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default function RootLayout({
             </p>
           </div>
         </footer>
+        <CompareTray />
       </body>
     </html>
   );

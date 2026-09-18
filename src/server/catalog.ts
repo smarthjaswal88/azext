@@ -138,6 +138,22 @@ export async function searchProducts(query: SearchQuery): Promise<Product[]> {
   return sortProducts(results, query.sort);
 }
 
+/** Resolves several slugs at once, preserving the order asked for and dropping
+ *  anything unknown. Used by the comparison page and tray, which take slugs
+ *  from the URL or from browser storage and must tolerate both being stale. */
+export async function getProductsBySlugs(slugs: string[]): Promise<Product[]> {
+  const bySlug = new Map(DEMO_PRODUCTS.map((p) => [p.slug, p]));
+  const seen = new Set<string>();
+  const out: Product[] = [];
+  for (const slug of slugs) {
+    if (seen.has(slug)) continue;
+    seen.add(slug);
+    const product = bySlug.get(slug);
+    if (product) out.push(product);
+  }
+  return out;
+}
+
 /** Resolves a variant id to the variant and the product that owns it. This is
  *  the lookup order pricing depends on: the browser sends variant ids and
  *  nothing else, and every price comes from here. */
