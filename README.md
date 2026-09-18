@@ -62,20 +62,60 @@ checkout is disabled and says so** — nothing is kept in memory as a stand-in, 
 that disappeared on the next restart would look like it had worked.
 
 1. Create a Supabase project.
-2. Apply **both** migrations in `supabase/migrations/`, in order, either with the Supabase CLI
-   (`supabase db push`) or by pasting them into the SQL editor:
-   - `0001_demo_orders.sql` — tables, RLS, the order-creation function
-   - `0002_idempotency_fingerprint.sql` — binds an idempotency key to the request it was first
-     used for (additive; safe to apply on top of 0001)
-   - `0003_ai_guidance.sql` — AI spend budget, usage ledger and guidance cache
-3. Put these in `.env.local` — copy the values from **Project Settings → API**:
+2. Apply the migrations. **For checkout you need exactly two, in this order:**
+
+   | Order | File | What it creates |
+   |---|---|---|
+   | 1 | `supabase/migrations/0001_demo_orders.sql` | `orders` and `order_items`, RLS enabled with no policies, and `create_demo_order` |
+   | 2 | `supabase/migrations/0002_idempotency_fingerprint.sql` | adds `request_fingerprint` and replaces the function with `create_demo_order_v2` |
+
+   `0002` depends on `0001` — it drops the old function and alters the table `0001` creates — so
+   the order matters. Neither is idempotent in the "run it twice safely" sense for the `drop
+   function` step, though re-running is harmless: `0002` uses `if exists` and `if not exists`
+   throughout.
+
+   **Running them in the Supabase SQL editor**, which needs no local tooling:
+
+   1. Open your project → **SQL Editor** → **New query**.
+   2. Open `supabase/migrations/0001_demo_orders.sql` in this repository, copy the whole file,
+      paste it in, and press **Run**. Expect "Success. No rows returned".
+   3. Open a **new query**, do the same with `0002_idempotency_fingerprint.sql`, and **Run**.
+   4. Confirm with:
+
+      ```sql
+      select table_name from information_schema.tables
+       where table_schema = 'public' order by table_name;
+      -- expect: order_items, orders
+
+      select routine_name from information_schema.routines
+       where routine_schema = 'public' order by routine_name;
+      -- expect: create_demo_order_v2   (create_demo_order is dropped by 0002)
+      ```
+
+   Do not run them one statement at a time — each file is a single migration and the function
+   bodies contain semicolons.
+
+   `0003_ai_guidance.sql` and `0004_budget_limit_and_dedup.sql` are **not needed for checkout**.
+   They set up the AI spend ledger and only matter if you later enable guidance, which is off.
+3. Put these in `.env.local` (or `.env`) — from **Project Settings → API keys**:
 
    ```
    NEXT_PUBLIC_SUPABASE_URL=
-   SUPABASE_SERVICE_ROLE_KEY=
+   SUPABASE_SECRET_KEY=
    ```
 
-4. Restart `npm run dev`. Checkout enables itself once both are set.
+   `SUPABASE_SECRET_KEY` takes the newer `sb_secret_…` key, which replaces the legacy
+   `service_role` JWT. The old variable name `SUPABASE_SERVICE_ROLE_KEY` is still read as a
+   fallback, so an existing deployment keeps working; `SUPABASE_SECRET_KEY` wins if both are set.
+   Either name accepts either key format.
+
+   **Do not put the publishable key here.** `sb_publishable_…` replaces `anon` and does *not*
+   bypass RLS. Nothing would fail loudly — but because the orders tables carry no policies, every
+   read would come back empty and every write would be refused, which reads as "the order
+   vanished" rather than "the wrong key". The server checks the prefix and refuses to start with
+   one, logging the reason without logging the key.
+
+4. Restart the dev server. Checkout enables itself once the URL and a secret key are both set.
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is listed in `.env.example` for later steps. Order storage does
 not use it.

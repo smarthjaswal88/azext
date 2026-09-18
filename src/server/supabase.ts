@@ -18,10 +18,37 @@ export interface SupabaseConfig {
   serviceRoleKey: string;
 }
 
+/** The secret key, under either accepted name. */
+function readSecretKey(): string | undefined {
+  return (
+    process.env.SUPABASE_SECRET_KEY?.trim() ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    undefined
+  );
+}
+
+/**
+ * Catches the mistake that would otherwise be silent: a publishable key in the
+ * secret slot. It is a valid key, so `createClient` succeeds and requests go
+ * through — but it does not bypass RLS, and since the orders tables have no
+ * policies every read returns nothing and every write is refused. That looks
+ * like "the order vanished" rather than "the wrong key". Better to refuse to
+ * start.
+ */
+export function secretKeyProblem(): string | undefined {
+  const key = readSecretKey();
+  if (!key) return undefined;
+  if (key.startsWith("sb_publishable_")) {
+    return "a publishable key was supplied where the secret key is required";
+  }
+  return undefined;
+}
+
 export function readSupabaseConfig(): SupabaseConfig | undefined {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const serviceRoleKey = readSecretKey();
   if (!url || !serviceRoleKey) return undefined;
+  if (secretKeyProblem()) return undefined;
   return { url, serviceRoleKey };
 }
 
@@ -36,7 +63,7 @@ export function isSupabaseConfigured(): boolean {
 export function missingSupabaseVars(): string[] {
   const missing: string[] = [];
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) missing.push("NEXT_PUBLIC_SUPABASE_URL");
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!readSecretKey()) missing.push("SUPABASE_SECRET_KEY (or SUPABASE_SERVICE_ROLE_KEY)");
   return missing;
 }
 
@@ -47,6 +74,17 @@ let warned = false;
 export function warnIfUnconfigured(): void {
   if (warned || isSupabaseConfigured()) return;
   warned = true;
+
+  const problem = secretKeyProblem();
+  if (problem) {
+    // Names and shapes only. No key value is ever logged.
+    console.warn(
+      `[orders] Supabase key rejected — ${problem}. Set SUPABASE_SECRET_KEY to a value ` +
+        "beginning sb_secret_ (or a legacy service_role JWT). Checkout is disabled.",
+    );
+    return;
+  }
+
   console.warn(
     `[orders] Supabase is not configured — checkout is disabled. Missing: ${missingSupabaseVars().join(", ")}. ` +
       "See \"Supabase setup\" in README.md and apply supabase/migrations/.",
