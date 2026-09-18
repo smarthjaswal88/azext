@@ -1,10 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800" role="img">
-  <rect width="800" height="800" fill="#f4f4f5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="900" height="900" role="img">
+  <rect width="900" height="900" fill="#f6f7f7"/>
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6f8065"/>
+      <stop offset="0.55" stop-color="#586b4c"/>
+      <stop offset="1" stop-color="#46563d"/>
+    </linearGradient>
+    <linearGradient id="bodyV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6f8065"/>
+      <stop offset="1" stop-color="#46563d"/>
+    </linearGradient>
+    <linearGradient id="sleeve" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#46563d"/>
+      <stop offset="1" stop-color="#586b4c"/>
+    </linearGradient>
+    <radialGradient id="cup" cx="0.36" cy="0.30" r="0.85">
+      <stop offset="0" stop-color="#6f8065"/>
+      <stop offset="0.6" stop-color="#586b4c"/>
+      <stop offset="1" stop-color="#37422f"/>
+    </radialGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="450" cy="760" rx="250" ry="34" fill="url(#shadow)"/>
   <g>
-    <path d="M 276 196 L 210 234 L 150 352 L 232 402 L 254 348 L 254 640 L 546 640 L 546 348 L 568 402 L 650 352 L 590 234 L 524 196 L 470 176 L 400 214 L 330 176 Z" fill="#586b4c"/>
-    <path d="M 400 214 L 400 430" stroke="#37422f" stroke-width="16"/>
-    <rect x="386" y="410" width="28" height="44" rx="8" fill="#37422f"/>
-    <path d="M 330 176 L 470 176" stroke="#37422f" stroke-width="30" stroke-linecap="round"/>
-    <path d="M 254 596 L 546 596" stroke="#87947e" stroke-width="10" opacity="0.4"/>
+    <path d="M 318 214 L 244 258 L 172 402 L 264 458 L 292 396 L 292 690 L 608 690 L 608 396 L 636 458 L 728 402 L 656 258 L 582 214 L 512 196 L 450 240 L 388 196 Z" fill="url(#body)" stroke="#414f38" stroke-width="2"/>
+    <path d="M 244 258 L 172 402 L 196 560 L 292 548 L 292 396 Z" fill="url(#sleeve)" stroke="#414f38" stroke-width="2"/>
+    <path d="M 656 258 L 728 402 L 704 560 L 608 548 L 608 396 Z" fill="url(#sleeve)" stroke="#414f38" stroke-width="2"/>
+    <path d="M 312 300 L 312 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 338 300 L 338 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 364 300 L 364 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 390 300 L 390 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 416 300 L 416 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 442 300 L 442 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 468 300 L 468 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 494 300 L 494 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 520 300 L 520 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 546 300 L 546 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 572 300 L 572 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 598 300 L 598 660" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 320 L 600 320" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 346 L 600 346" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 372 L 600 372" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 398 L 600 398" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 424 L 600 424" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 450 L 600 450" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 476 L 600 476" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 502 L 600 502" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 528 L 600 528" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 554 L 600 554" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 580 L 600 580" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 606 L 600 606" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 632 L 600 632" stroke="#46563d" stroke-width="2.5" opacity="0.18"/><path d="M 300 658 L 600 658" stroke="#46563d" stroke-width="2.5" opacity="0.18"/>
+    <!-- stand collar and quarter zip -->
+    <path d="M 388 196 L 512 196 L 512 150 L 388 150 Z" fill="#37422f"/>
+    <path d="M 388 196 L 450 240 L 512 196" fill="#46563d"/>
+    <rect x="440" y="150" width="20" height="300" rx="9" fill="#232b1e"/>
+    <rect x="434" y="430" width="32" height="46" rx="10" fill="#37422f"/>
+    <rect x="292" y="648" width="316" height="42" fill="#46563d" opacity="0.7"/>
+    <rect x="188" y="520" width="112" height="42" rx="10" fill="#46563d"/>
+    <rect x="600" y="520" width="112" height="42" rx="10" fill="#46563d"/>
   </g>
 </svg>

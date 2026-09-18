@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCart } from "@/components/add-to-cart";
 import { SiteHeader } from "@/components/site-header";
-import { RatingLine, StarRating } from "@/components/star-rating";
+import { RatingLine, StarRow } from "@/components/star-rating";
 import { formatCount, formatPrice } from "@/lib/format";
 import {
   discountPercent,
@@ -98,8 +98,8 @@ export default async function ProductPage({
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4">
-        <nav aria-label="Breadcrumb" className="mb-4 text-xs text-muted-ink">
+      <main className="mx-auto w-full max-w-[1500px] flex-1 px-3 py-3 sm:px-4">
+        <nav aria-label="Breadcrumb" className="mb-2 px-1 text-xs text-ink-muted">
           <Link href="/" className="hover:underline">
             Home
           </Link>
@@ -111,7 +111,7 @@ export default async function ProductPage({
           <span className="text-foreground">{product.brand}</span>
         </nav>
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,4fr)_minmax(0,3fr)]">
+        <div className="grid gap-6 rounded-lg border border-border-subtle bg-surface p-3 sm:p-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,4fr)_minmax(0,3.2fr)]">
           {/* Gallery */}
           <section className="lg:sticky lg:top-36 lg:self-start">
             <div className="flex gap-3">
@@ -127,8 +127,10 @@ export default async function ProductPage({
                       scroll={false}
                       aria-label={img.alt}
                       aria-current={i === imgIndex}
-                      className={`relative block aspect-square overflow-hidden rounded border bg-surface-muted ${
-                        i === imgIndex ? "border-accent ring-1 ring-accent" : "border-border-subtle"
+                      className={`relative block aspect-square overflow-hidden rounded border bg-surface-image ${
+                        i === imgIndex
+                          ? "border-accent-ring ring-1 ring-accent-ring"
+                          : "border-border-subtle hover:border-border-strong"
                       }`}
                     >
                       <Image src={img.src} alt="" fill sizes="56px" className="object-contain p-1" />
@@ -136,7 +138,7 @@ export default async function ProductPage({
                   </li>
                 ))}
               </ol>
-              <div className="relative aspect-square min-w-0 flex-1 overflow-hidden rounded-lg border border-border-subtle bg-surface-muted">
+              <div className="relative aspect-square min-w-0 flex-1 overflow-hidden rounded-lg border border-border-subtle bg-surface-image">
                 <Image
                   src={hero.src}
                   alt={hero.alt}
@@ -151,8 +153,8 @@ export default async function ProductPage({
 
           {/* Details and variant selection */}
           <section className="min-w-0">
-            <p className="text-sm text-muted-ink">{product.brand}</p>
-            <h1 className="mt-1 text-2xl font-semibold leading-tight">{product.title}</h1>
+            <p className="text-sm text-ink-muted">{product.brand}</p>
+            <h1 className="mt-0.5 text-xl font-semibold leading-snug sm:text-2xl">{product.title}</h1>
 
             <div className="mt-2">
               <RatingLine
@@ -162,7 +164,7 @@ export default async function ProductPage({
               />
             </div>
 
-            <p className="mt-4 text-muted-ink">{product.summary}</p>
+            <p className="mt-3 text-sm leading-relaxed text-ink-muted">{product.summary}</p>
 
             <hr className="my-5 border-border-subtle" />
 
@@ -171,7 +173,7 @@ export default async function ProductPage({
               return (
                 <div key={axis.key} className="mb-5">
                   <p className="mb-2 text-sm">
-                    <span className="text-muted-ink">{axis.label}: </span>
+                    <span className="text-ink-muted">{axis.label}: </span>
                     <span className="font-semibold">{selected?.label}</span>
                   </p>
                   <ul className="flex flex-wrap gap-2">
@@ -187,14 +189,14 @@ export default async function ProductPage({
                             title={inStock ? value.label : `${value.label} — unavailable`}
                             className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition ${
                               isSelected
-                                ? "border-accent ring-1 ring-accent"
-                                : "border-border-subtle hover:border-foreground"
-                            } ${inStock ? "" : "text-muted-ink line-through decoration-1 opacity-70"}`}
+                                ? "border-accent-ring bg-surface-muted font-semibold ring-1 ring-accent-ring"
+                                : "border-border-strong hover:border-ink"
+                            } ${inStock ? "" : "text-ink-muted line-through decoration-1 opacity-70"}`}
                           >
                             {value.swatch && (
                               <span
                                 aria-hidden="true"
-                                className="inline-block size-4 rounded-full border border-border-subtle"
+                                className="inline-block size-4 rounded-full border border-border-strong"
                                 style={{ background: value.swatch }}
                               />
                             )}
@@ -208,7 +210,7 @@ export default async function ProductPage({
               );
             })}
 
-            <h2 className="mb-2 mt-8 text-base font-semibold">Specifications</h2>
+            <h2 className="mb-2 mt-7 text-base font-bold">Specifications</h2>
             <dl className="overflow-hidden rounded-lg border border-border-subtle text-sm">
               {product.specs.map((spec, i) => (
                 <div
@@ -217,7 +219,7 @@ export default async function ProductPage({
                     i % 2 === 0 ? "bg-surface-muted" : "bg-surface"
                   }`}
                 >
-                  <dt className="font-medium text-muted-ink">{spec.label}</dt>
+                  <dt className="font-medium text-ink-muted">{spec.label}</dt>
                   <dd>{spec.value}</dd>
                 </div>
               ))}
@@ -226,7 +228,7 @@ export default async function ProductPage({
 
           {/* Buy box. Price and availability come from the selected variant. */}
           <aside className="lg:sticky lg:top-36 lg:self-start">
-            <div className="rounded-lg border border-border-subtle bg-surface p-4">
+            <div className="rounded-lg border border-border-subtle bg-surface-muted p-4">
               <div className="flex flex-wrap items-baseline gap-2">
                 {discount !== undefined && (
                   <span className="text-lg font-semibold text-sale">-{discount}%</span>
@@ -234,14 +236,14 @@ export default async function ProductPage({
                 <span className="text-2xl font-bold">{formatPrice(variant.priceCents)}</span>
               </div>
               {variant.listPriceCents !== undefined && discount !== undefined && (
-                <p className="mt-0.5 text-sm text-muted-ink">
+                <p className="mt-0.5 text-sm text-ink-muted">
                   Was <s>{formatPrice(variant.listPriceCents)}</s>
                 </p>
               )}
 
               <p className="mt-3 text-sm">
                 {variant.available ? (
-                  <span className="font-medium text-green-700 dark:text-green-400">In stock</span>
+                  <span className="font-semibold text-in-stock">In stock</span>
                 ) : (
                   <span className="font-medium text-sale">
                     Unavailable in {describeVariant(product, variant)}
@@ -250,25 +252,25 @@ export default async function ProductPage({
               </p>
 
               {!variant.available && (
-                <p className="mt-1 text-sm text-muted-ink">
+                <p className="mt-1 text-sm text-ink-muted">
                   Pick another option above — the ones you cannot choose are struck through.
                 </p>
               )}
 
               <dl className="mt-4 space-y-1 border-t border-border-subtle pt-3 text-sm">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-muted-ink">Selection</dt>
+                  <dt className="text-ink-muted">Selection</dt>
                   <dd className="text-right font-medium">{describeVariant(product, variant)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-muted-ink">Variant ID</dt>
+                  <dt className="text-ink-muted">Variant ID</dt>
                   <dd className="text-right font-mono text-xs">{variant.id}</dd>
                 </div>
               </dl>
 
               <AddToCart variantId={variant.id} available={variant.available} />
 
-              <p className="mt-4 rounded-md bg-surface-muted p-3 text-xs text-muted-ink">
+              <p className="mt-4 rounded-md bg-surface-muted p-3 text-xs text-ink-muted">
                 Simulated checkout — no payment is taken and nothing ships.
               </p>
             </div>
@@ -276,11 +278,11 @@ export default async function ProductPage({
         </div>
 
         {/* Reviews */}
-        <section id="reviews" className="mt-12 scroll-mt-36 border-t border-border-subtle pt-8">
-          <h2 className="text-xl font-semibold">Ratings and reviews</h2>
-          <p className="mt-1 max-w-prose text-sm text-muted-ink">
+        <section id="reviews" className="mt-3 scroll-mt-40 rounded-lg border border-border-subtle bg-surface p-3 sm:p-5">
+          <h2 className="text-lg font-bold sm:text-xl">Ratings and reviews</h2>
+          <p className="mt-1.5 max-w-prose rounded-md border border-border-subtle bg-surface-muted px-3 py-2 text-sm text-ink-muted">
             These reviews are written demo content for this prototype. They are not customer
-            feedback and describe a product that does not exist.
+            feedback, and they describe a product that does not exist.
           </p>
 
           <div className="mt-6 grid gap-8 lg:grid-cols-[300px_1fr]">
@@ -288,11 +290,11 @@ export default async function ProductPage({
               <div className="flex items-center gap-2">
                 <span className="text-3xl font-bold">{product.rating.average.toFixed(1)}</span>
                 <div>
-                  <StarRating value={product.rating.average} size={18} />
-                  <p className="text-sm text-muted-ink">out of 5</p>
+                  <StarRow value={product.rating.average} size={18} />
+                  <p className="text-sm text-ink-muted">out of 5</p>
                 </div>
               </div>
-              <p className="mt-2 text-sm text-muted-ink">
+              <p className="mt-2 text-sm text-ink-muted">
                 {formatCount(product.rating.ratingCount)} ratings ·{" "}
                 {formatCount(product.rating.reviewCount)} written reviews
               </p>
@@ -303,14 +305,14 @@ export default async function ProductPage({
                   const pct = Math.round((count / product.rating.ratingCount) * 100);
                   return (
                     <li key={star} className="flex items-center gap-2 text-sm">
-                      <span className="w-12 shrink-0 text-muted-ink">{star} star</span>
+                      <span className="w-12 shrink-0 text-ink-muted">{star} star</span>
                       <span className="h-3.5 flex-1 overflow-hidden rounded-sm border border-border-subtle bg-surface-muted">
                         <span
                           className="block h-full bg-star"
                           style={{ width: `${(count / histogramMax) * 100}%` }}
                         />
                       </span>
-                      <span className="w-9 shrink-0 text-right text-muted-ink">{pct}%</span>
+                      <span className="w-9 shrink-0 text-right text-ink-muted">{pct}%</span>
                     </li>
                   );
                 })}
@@ -322,12 +324,12 @@ export default async function ProductPage({
                 const bought = r.variantId ? findVariantById(product, r.variantId) : undefined;
                 return (
                   <li key={r.id} className="border-b border-border-subtle pb-5 last:border-0">
-                    <p className="text-sm font-medium text-muted-ink">{r.authorLabel}</p>
+                    <p className="text-sm font-medium text-ink-muted">{r.authorLabel}</p>
                     <div className="mt-1 flex items-center gap-2">
-                      <StarRating value={r.rating} size={15} />
+                      <StarRow value={r.rating} size={14} />
                       <h3 className="text-sm font-semibold">{r.title}</h3>
                     </div>
-                    <p className="mt-1 text-xs text-muted-ink">
+                    <p className="mt-1 text-xs text-ink-muted">
                       Reviewed on{" "}
                       {new Date(r.createdAt).toLocaleDateString("en-US", {
                         year: "numeric",
@@ -336,12 +338,12 @@ export default async function ProductPage({
                       })}
                       {bought && <> · {describeVariant(product, bought)}</>}
                       {r.verifiedPurchase && (
-                        <> · <span className="font-medium text-accent">Verified purchase</span></>
+                        <> · <span className="font-medium text-ink">Verified purchase</span></>
                       )}
                     </p>
                     <p className="mt-2 text-sm leading-relaxed">{r.body}</p>
                     {r.helpfulCount > 0 && (
-                      <p className="mt-2 text-xs text-muted-ink">
+                      <p className="mt-2 text-xs text-ink-muted">
                         {formatCount(r.helpfulCount)} people found this helpful
                       </p>
                     )}

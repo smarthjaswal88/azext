@@ -117,13 +117,13 @@ export function CheckoutView({
     }
   }
 
-  if (!ready) return <p className="py-16 text-center text-muted-ink">Loading…</p>;
+  if (!ready) return <p className="rounded-lg border border-border-subtle bg-surface py-16 text-center text-ink-muted">Loading…</p>;
 
   if (error) {
     return (
-      <div className="rounded-lg border border-border-subtle p-8 text-center">
+      <div className="rounded-lg border border-border-subtle bg-surface p-8 text-center">
         <p className="font-medium text-sale">We could not price this order.</p>
-        <p className="mt-1 text-sm text-muted-ink">{error}</p>
+        <p className="mt-1 text-sm text-ink-muted">{error}</p>
         <button
           type="button"
           onClick={reload}
@@ -135,15 +135,15 @@ export function CheckoutView({
     );
   }
 
-  if (!data) return <p className="py-16 text-center text-muted-ink">Pricing…</p>;
+  if (!data) return <p className="rounded-lg border border-border-subtle bg-surface py-16 text-center text-ink-muted">Pricing…</p>;
 
   const purchasable = data.lines.filter((l) => l.available);
 
   if (purchasable.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border-subtle p-12 text-center">
+      <div className="rounded-lg border border-border-subtle bg-surface p-12 text-center">
         <h2 className="text-lg font-medium">Nothing here can be bought</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-muted-ink">
+        <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
           {items.length === 0
             ? "Your cart is empty."
             : "Everything in this order is out of stock or no longer in the catalog."}
@@ -163,7 +163,7 @@ export function CheckoutView({
       <div className="space-y-6">
         <section className="rounded-lg border border-border-subtle bg-surface p-4">
           <h2 className="text-base font-semibold">Delivery</h2>
-          <p className="mt-1 text-xs text-muted-ink">
+          <p className="mt-1 text-xs text-ink-muted">
             Fixed demo details. No form collects anything about you, and nothing ships.
           </p>
           <address className="mt-3 text-sm not-italic leading-relaxed">
@@ -177,25 +177,25 @@ export function CheckoutView({
             <br />
             {delivery.country}
           </address>
-          <p className="mt-3 text-sm text-muted-ink">{delivery.method}</p>
+          <p className="mt-3 text-sm text-ink-muted">{delivery.method}</p>
         </section>
 
         <section className="rounded-lg border border-border-subtle bg-surface p-4">
           <h2 className="text-base font-semibold">Payment</h2>
-          <p className="mt-1 text-sm text-muted-ink">
+          <p className="mt-1 text-sm text-ink-muted">
             None. This is a simulated checkout — there is no payment provider, no card form and
             no charge. &ldquo;Place demo order&rdquo; writes an order record and nothing else.
           </p>
         </section>
 
-        <section>
+        <section className="rounded-lg border border-border-subtle bg-surface p-4">
           <h2 className="mb-2 text-base font-semibold">
             {isDirect ? "Buying now" : "Items"} ({purchasable.length})
           </h2>
-          <ul className="divide-y divide-border-subtle border-y border-border-subtle">
+          <ul className="divide-y divide-border-subtle border-t border-border-subtle">
             {purchasable.map((line) => (
               <li key={line.variantId} className="flex items-center gap-4 py-3">
-                <div className="relative size-16 shrink-0 overflow-hidden rounded border border-border-subtle bg-surface-muted">
+                <div className="relative size-16 shrink-0 overflow-hidden rounded border border-border-subtle bg-surface-image">
                   <Image
                     src={line.imageSrc}
                     alt={line.imageAlt}
@@ -206,7 +206,7 @@ export function CheckoutView({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 text-sm font-medium">{line.title}</p>
-                  <p className="text-xs text-muted-ink">
+                  <p className="text-xs text-ink-muted">
                     {line.optionsLabel} · Qty {line.quantity}
                   </p>
                 </div>
@@ -220,17 +220,17 @@ export function CheckoutView({
       </div>
 
       <aside className="lg:sticky lg:top-36 lg:self-start">
-        <div className="rounded-lg border border-border-subtle bg-surface p-4">
+        <div className="rounded-lg border border-border-subtle bg-surface p-4 shadow-sm">
           <h2 className="text-base font-semibold">Order summary</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted-ink">
+              <dt className="text-ink-muted">
                 Subtotal ({data.itemCount} {data.itemCount === 1 ? "item" : "items"})
               </dt>
               <dd className="font-medium">{formatPrice(data.subtotalCents)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-ink">Delivery</dt>
+              <dt className="text-ink-muted">Delivery</dt>
               <dd className="font-medium">
                 {data.shippingCents === 0 ? "Free" : formatPrice(data.shippingCents)}
               </dd>
@@ -246,14 +246,14 @@ export function CheckoutView({
               type="button"
               onClick={() => void placeOrder()}
               disabled={submission.state === "submitting" || loading}
-              className="mt-4 w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:brightness-110 disabled:opacity-60"
+              className="mt-4 w-full rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink shadow-sm hover:bg-accent-hover disabled:opacity-60"
             >
               {submission.state === "submitting" ? "Placing order…" : "Place demo order"}
             </button>
           ) : (
             <div className="mt-4 rounded-md border border-sale/40 bg-surface-muted p-3">
               <p className="text-sm font-semibold text-sale">Checkout is unavailable</p>
-              <p className="mt-1 text-xs text-muted-ink">
+              <p className="mt-1 text-xs text-ink-muted">
                 Orders cannot be placed right now. Your cart is unaffected.
               </p>
             </div>
@@ -271,7 +271,7 @@ export function CheckoutView({
                   >
                     Try again
                   </button>
-                  <p className="mt-2 text-xs text-muted-ink">
+                  <p className="mt-2 text-xs text-ink-muted">
                     Retrying is safe — it reuses the same order key, so it cannot create a second
                     order.
                   </p>
@@ -292,7 +292,7 @@ export function CheckoutView({
             </div>
           )}
 
-          <p className="mt-3 text-xs text-muted-ink">
+          <p className="mt-3 text-xs text-ink-muted">
             Totals are recalculated on the server before the order is written.
           </p>
         </div>

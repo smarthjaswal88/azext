@@ -36,13 +36,13 @@ export default async function CheckoutPage({
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
+      <main className="mx-auto w-full max-w-[1500px] flex-1 px-3 py-4 sm:px-4">
         <div className="mb-5">
-          <p className="inline-block rounded bg-surface-muted px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-ink">
+          <p className="inline-block rounded border border-border-subtle bg-surface-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
             Simulated checkout
           </p>
-          <h1 className="mt-2 text-2xl font-semibold">Checkout</h1>
-          <p className="mt-1 max-w-prose text-sm text-muted-ink">
+          <h1 className="mt-2 text-xl font-bold sm:text-2xl">Checkout</h1>
+          <p className="mt-1 max-w-prose text-sm text-ink-muted">
             No payment is taken and nothing ships. Delivery details are fixed demo values, so you
             can complete the journey without entering anything about yourself.{" "}
             {!directItem && (
@@ -56,7 +56,7 @@ export default async function CheckoutPage({
         {!storageReady && (
           <div className="mb-6 rounded-lg border border-sale/40 bg-surface-muted p-4">
             <h2 className="text-base font-semibold text-sale">Checkout is unavailable</h2>
-            <p className="mt-1 max-w-prose text-sm text-muted-ink">
+            <p className="mt-1 max-w-prose text-sm text-ink-muted">
               Orders cannot be placed right now. Browsing and the cart still work, and anything
               you have added stays where it is.
             </p>

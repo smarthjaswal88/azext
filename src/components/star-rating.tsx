@@ -1,49 +1,27 @@
 import { formatCount } from "@/lib/format";
-
-/** Five stars with a partial fill for the fractional part. Decorative: the
- *  numeric value is always given in text alongside it. */
-export function StarRating({
-  value,
-  size = 16,
-}: {
-  value: number;
-  size?: number;
-}) {
-  const pct = Math.max(0, Math.min(100, (value / 5) * 100));
-  return (
-    <span
-      className="relative inline-block leading-none align-middle"
-      style={{ fontSize: size }}
-      aria-hidden="true"
-    >
-      <span className="text-border-subtle">★★★★★</span>
-      <span
-        className="absolute inset-0 overflow-hidden text-star"
-        style={{ width: `${pct}%` }}
-      >
-        ★★★★★
-      </span>
-    </span>
-  );
-}
+import { StarRow } from "./icons";
 
 export function RatingLine({
   average,
   ratingCount,
   href,
-  size = 16,
+  size = 15,
+  showCount = true,
 }: {
   average: number;
   ratingCount: number;
   href?: string;
   size?: number;
+  showCount?: boolean;
 }) {
-  const label = `${average} out of 5, ${formatCount(ratingCount)} ratings`;
+  const label = `Rated ${average} out of 5 from ${formatCount(ratingCount)} ratings`;
   const inner = (
     <>
-      <span className="text-sm font-medium">{average.toFixed(1)}</span>
-      <StarRating value={average} size={size} />
-      <span className="text-sm text-muted-ink">({formatCount(ratingCount)})</span>
+      <span className="text-sm font-medium tabular-nums">{average.toFixed(1)}</span>
+      <StarRow value={average} size={size} />
+      {showCount && (
+        <span className="text-sm text-ink-link tabular-nums">{formatCount(ratingCount)}</span>
+      )}
     </>
   );
   return href ? (
@@ -56,3 +34,5 @@ export function RatingLine({
     </span>
   );
 }
+
+export { StarRow };

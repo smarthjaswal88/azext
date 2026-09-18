@@ -1,33 +1,33 @@
 import Link from "next/link";
 import { getCategories } from "@/server/catalog";
 import { CartCount } from "./cart-count";
+import { SearchIcon } from "./icons";
 
-/** Header is a server component: the search box is a plain GET form, so text
- *  search works with no client JavaScript and lands in the URL by itself. The
- *  cart count is the one island of client state, since it lives in
- *  localStorage.
+/** Dark navy header over a secondary navigation strip, then one compact line of
+ *  demo disclosure. The search box is a plain GET form, so text search works
+ *  without client JavaScript and lands in the URL by itself; the cart count is
+ *  the only island of client state.
  *
- *  There is still no account control — authentication does not exist yet. */
+ *  No account control — authentication does not exist. */
 export async function SiteHeader({ defaultQuery = "" }: { defaultQuery?: string }) {
   const categories = await getCategories();
 
   return (
-    <header className="sticky top-0 z-20">
+    <header className="sticky top-0 z-30">
       <div className="bg-header text-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
+        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2 sm:px-4">
           <Link
             href="/"
-            className="shrink-0 text-lg font-bold tracking-tight hover:opacity-80"
+            className="shrink-0 rounded px-1 py-1 text-lg font-bold tracking-tight hover:opacity-85"
           >
             Shop
-            <span className="ml-1 align-super text-[10px] font-normal opacity-70">demo</span>
           </Link>
 
           <form
             action="/search"
             method="get"
             role="search"
-            className="order-last flex w-full min-w-0 flex-1 md:order-none md:w-auto"
+            className="order-last flex h-10 w-full min-w-0 flex-1 md:order-none md:w-auto"
           >
             <label htmlFor="site-search" className="sr-only">
               Search products
@@ -38,34 +38,28 @@ export async function SiteHeader({ defaultQuery = "" }: { defaultQuery?: string 
               name="q"
               defaultValue={defaultQuery}
               placeholder="Search headphones and clothing"
-              className="min-w-0 flex-1 rounded-l-md border border-transparent bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-500 focus:ring-2 focus:ring-accent"
+              className="min-w-0 flex-1 rounded-l-md border-0 bg-white px-3 text-sm text-ink outline-none placeholder:text-ink-muted"
             />
             <button
               type="submit"
-              className="rounded-r-md bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:brightness-110"
+              aria-label="Search"
+              className="flex w-12 items-center justify-center rounded-r-md bg-accent text-accent-ink hover:bg-accent-hover"
             >
-              Search
+              <SearchIcon size={19} />
             </button>
           </form>
-
-          <Link href="/search" className="shrink-0 text-sm hover:underline">
-            All products
-          </Link>
 
           <CartCount />
         </div>
       </div>
 
-      <nav
-        aria-label="Categories"
-        className="bg-header-strip text-white/90"
-      >
-        <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-2 py-1.5 text-sm">
+      <nav aria-label="Categories" className="bg-header-strip text-white">
+        <div className="mx-auto flex max-w-[1500px] items-center gap-0.5 overflow-x-auto px-2 py-1 text-sm sm:px-3">
           <Link
             href="/search"
-            className="whitespace-nowrap rounded px-3 py-1.5 hover:bg-white/10"
+            className="whitespace-nowrap rounded px-3 py-1.5 font-medium hover:bg-white/10"
           >
-            All
+            All products
           </Link>
           {categories.map((c) => (
             <Link
@@ -79,9 +73,8 @@ export async function SiteHeader({ defaultQuery = "" }: { defaultQuery?: string 
         </div>
       </nav>
 
-      <p className="bg-surface-muted px-4 py-1.5 text-center text-xs text-muted-ink">
-        Demo storefront — every product, price, image and review here is invented for this
-        prototype.
+      <p className="border-b border-border-subtle bg-surface px-3 py-1 text-center text-[11px] leading-tight text-ink-muted sm:px-4">
+        Demo store — products, prices and reviews are fictional. Nothing can be bought.
       </p>
     </header>
   );

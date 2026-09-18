@@ -1,8 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800" role="img">
-  <rect width="800" height="800" fill="#f4f4f5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="900" height="900" role="img">
+  <rect width="900" height="900" fill="#f6f7f7"/>
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#717a86"/>
+      <stop offset="0.55" stop-color="#5a6472"/>
+      <stop offset="1" stop-color="#48505b"/>
+    </linearGradient>
+    <linearGradient id="bodyV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#717a86"/>
+      <stop offset="1" stop-color="#48505b"/>
+    </linearGradient>
+    <linearGradient id="sleeve" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#48505b"/>
+      <stop offset="1" stop-color="#5a6472"/>
+    </linearGradient>
+    <radialGradient id="cup" cx="0.36" cy="0.30" r="0.85">
+      <stop offset="0" stop-color="#717a86"/>
+      <stop offset="0.6" stop-color="#5a6472"/>
+      <stop offset="1" stop-color="#383e47"/>
+    </radialGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="450" cy="760" rx="250" ry="34" fill="url(#shadow)"/>
   <g>
-    <path d="M 276 196 L 210 234 L 150 352 L 232 402 L 254 348 L 254 640 L 546 640 L 546 348 L 568 402 L 650 352 L 590 234 L 524 196 L 470 206 A 74 30 0 0 1 330 206 Z" fill="#5a6472"/>
-    <rect x="378" y="228" width="44" height="58" rx="10" fill="#888f99" opacity="0.8"/>
-    <path d="M 254 614 L 546 614" stroke="#383e47" stroke-width="8" opacity="0.45"/>
+    <path d="M 318 214 L 244 258 L 172 402 L 264 458 L 292 396 L 292 690 L 608 690 L 608 396 L 636 458 L 728 402 L 656 258 L 582 214 L 512 224 A 64 26 0 0 1 388 224 Z" fill="url(#body)" stroke="#434a54" stroke-width="2"/>
+    <path d="M 244 258 L 172 402 L 264 458 L 292 396 Z" fill="url(#sleeve)" stroke="#434a54" stroke-width="2"/>
+    <path d="M 656 258 L 728 402 L 636 458 L 608 396 Z" fill="url(#sleeve)" stroke="#434a54" stroke-width="2"/>
+    <path d="M 388 224 A 64 26 0 0 0 512 224" fill="none" stroke="#24282e" stroke-width="13"/>
+    <rect x="428" y="252" width="44" height="54" rx="8" fill="#717a86" opacity="0.75"/>
+    <path d="M 292 662 L 608 662" stroke="#48505b" stroke-width="4" opacity="0.6"/>
   </g>
 </svg>

@@ -1,56 +1,74 @@
 @import "tailwindcss";
 
+/**
+ * Explicit light theme.
+ *
+ * Shopping surfaces do not follow the operating system theme: a storefront
+ * that flips to dark changes how every product photograph and colour swatch
+ * reads, and a shopper judging a garment's colour should not be shown it
+ * through a dark filter. `color-scheme: light` also keeps form controls light.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #16181d;
-  --surface: #ffffff;
-  --surface-muted: #f3f4f6;
-  --border: #d9dce1;
-  --header: #1b2430;
-  --header-strip: #27313f;
-  --accent: #c8781f;
-  --accent-ink: #ffffff;
-  --muted-ink: #5b6472;
-  --star: #d97706;
-  --sale: #b42318;
-}
+  color-scheme: light;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1116;
-    --foreground: #e7e9ec;
-    --surface: #161a21;
-    --surface-muted: #1c212a;
-    --border: #2b323d;
-    --header: #10141a;
-    --header-strip: #1a212b;
-    --accent: #e08a2c;
-    --accent-ink: #1a1207;
-    --muted-ink: #99a2b0;
-    --star: #f0a53a;
-    --sale: #f1776b;
-  }
+  --page: #eaeded;
+  --surface: #ffffff;
+  /* Slightly off-white so white garments stay visible against it. */
+  --surface-image: #f6f7f7;
+  --surface-muted: #f3f4f5;
+  --ink: #0f1111;
+  --ink-muted: #565959;
+  --ink-link: #007185;
+  --border: #d5d9d9;
+  --border-strong: #adb1b8;
+
+  --header: #131a22;
+  --header-strip: #232f3e;
+
+  /* Purchase controls. #0f1111 on #ffd814 is roughly 15:1 — far above AA. */
+  --accent: #ffd814;
+  --accent-hover: #f5c400;
+  --accent-ink: #0f1111;
+  --accent-ring: #c89411;
+
+  --star: #de7921;
+  --price-sale: #b12704;
+  --in-stock: #007600;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-page: var(--page);
   --color-surface: var(--surface);
+  --color-surface-image: var(--surface-image);
   --color-surface-muted: var(--surface-muted);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-link: var(--ink-link);
   --color-border-subtle: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-header: var(--header);
   --color-header-strip: var(--header-strip);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
-  --color-muted-ink: var(--muted-ink);
+  --color-accent-ring: var(--accent-ring);
   --color-star: var(--star);
-  --color-sale: var(--sale);
+  --color-sale: var(--price-sale);
+  --color-in-stock: var(--in-stock);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--page);
+  color: var(--ink);
   font-family:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
+}
+
+/* One focus treatment everywhere, visible on both the navy header and white
+   cards. */
+:where(a, button, select, input, summary):focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
 }

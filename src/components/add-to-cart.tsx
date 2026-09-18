@@ -28,7 +28,7 @@ export function AddToCart({
 
   if (!available) {
     return (
-      <p className="mt-4 rounded-md border border-border-subtle bg-surface-muted p-3 text-sm text-muted-ink">
+      <p className="mt-4 rounded-md border border-border-subtle bg-surface-muted p-3 text-sm text-ink-muted">
         This option cannot be added to the cart while it is unavailable. Choose another above.
       </p>
     );
@@ -37,11 +37,11 @@ export function AddToCart({
   return (
     <div className="mt-4 space-y-2">
       <label className="flex items-center gap-2 text-sm">
-        <span className="text-muted-ink">Quantity</span>
+        <span className="text-ink-muted">Quantity</span>
         <select
           value={quantity}
           onChange={(e) => setQuantity(Number(e.target.value))}
-          className="rounded border border-border-subtle bg-surface px-2 py-1"
+          className="rounded border border-border-strong bg-surface px-2 py-1"
         >
           {Array.from({ length: MAX_QUANTITY_PER_LINE }, (_, i) => i + 1).map((n) => (
             <option key={n} value={n}>
@@ -59,7 +59,7 @@ export function AddToCart({
           setAdded(true);
           window.setTimeout(() => setAdded(false), 2500);
         }}
-        className="w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:brightness-110 disabled:opacity-60"
+        className="w-full rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-ink shadow-sm hover:bg-accent-hover disabled:opacity-60"
       >
         {added ? "Added to cart ✓" : "Add to cart"}
       </button>
@@ -70,12 +70,12 @@ export function AddToCart({
         onClick={() =>
           router.push(`/checkout?variant=${encodeURIComponent(variantId)}&qty=${quantity}`)
         }
-        className="w-full rounded-md border border-accent px-4 py-2 text-sm font-semibold hover:bg-surface-muted disabled:opacity-60"
+        className="w-full rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:bg-surface-muted disabled:opacity-60"
       >
         Buy now
       </button>
 
-      <p className="text-xs text-muted-ink">
+      <p className="text-xs text-ink-muted">
         Buy now checks out this item only and leaves your cart untouched.
       </p>
     </div>

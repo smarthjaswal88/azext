@@ -6,8 +6,8 @@ import { getCategories, getFeaturedProducts } from "@/server/catalog";
 export default async function HomePage() {
   const categories = await getCategories();
   const [headphones, clothing] = await Promise.all([
-    getFeaturedProducts("headphones", 4),
-    getFeaturedProducts("clothing", 4),
+    getFeaturedProducts("headphones", 6),
+    getFeaturedProducts("clothing", 6),
   ]);
 
   const rows = [
@@ -18,38 +18,31 @@ export default async function HomePage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
-        <section className="overflow-hidden rounded-xl border border-border-subtle bg-surface-muted">
-          <div className="grid gap-6 p-6 md:grid-cols-2 md:p-10">
-            <div className="flex flex-col justify-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-                Two categories, properly catalogued
+      <main className="mx-auto w-full max-w-[1500px] flex-1 px-3 py-3 sm:px-4 sm:py-4">
+        {/* Compact banner: one line of copy and two ways in. Deliberately short
+            so the product rows start near the top of the page. */}
+        <section className="rounded-lg border border-border-subtle bg-surface px-4 py-4 sm:px-6 sm:py-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+                Find your everyday favorites.
               </h1>
-              <p className="max-w-prose text-muted-ink">
-                Headphones and clothing, each with real specifications, per-variant pricing and
-                stock. Search, filter and sort across both.
+              <p className="mt-1 text-sm text-ink-muted">
+                Headphones and clothing, in one place.
               </p>
-              <div className="mt-2 flex flex-wrap gap-3">
-                {categories.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/search?category=${c.id}`}
-                    className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:brightness-110"
-                  >
-                    Shop {c.name.toLowerCase()}
-                  </Link>
-                ))}
-              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            <div className="grid grid-cols-2 gap-3 md:w-[420px]">
               {categories.map((c) => (
                 <Link
                   key={c.id}
                   href={`/search?category=${c.id}`}
-                  className="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface p-4 transition hover:shadow-md"
+                  className="rounded-md border border-border-subtle bg-surface-muted px-3 py-2.5 text-sm font-semibold transition hover:border-border-strong hover:bg-surface"
                 >
-                  <span className="text-sm font-semibold">{c.name}</span>
-                  <span className="text-xs text-muted-ink">{c.blurb}</span>
+                  {c.name}
+                  <span className="mt-0.5 block text-xs font-normal text-ink-muted">
+                    Shop all
+                  </span>
                 </Link>
               ))}
             </div>
@@ -57,17 +50,19 @@ export default async function HomePage() {
         </section>
 
         {rows.map(({ category, products }) => (
-          <section key={category.id} className="mt-10">
+          <section key={category.id} className="mt-3 rounded-lg border border-border-subtle bg-surface p-3 sm:p-4">
             <div className="mb-3 flex items-baseline justify-between gap-4">
-              <h2 className="text-xl font-semibold">Top rated in {category.name.toLowerCase()}</h2>
+              <h2 className="text-base font-bold sm:text-lg">
+                Top rated in {category.name.toLowerCase()}
+              </h2>
               <Link
                 href={`/search?category=${category.id}`}
-                className="text-sm font-medium text-muted-ink hover:underline"
+                className="shrink-0 text-sm text-ink-link hover:underline"
               >
-                See all {category.name.toLowerCase()}
+                See all
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
               {products.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}

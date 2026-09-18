@@ -5,15 +5,15 @@ export default function NotFound() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-16">
+      <main className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-16">
         <h1 className="text-2xl font-semibold">We could not find that page</h1>
-        <p className="mt-2 max-w-prose text-muted-ink">
+        <p className="mt-2 max-w-prose text-ink-muted">
           The product may have been renamed, or the address may be mistyped.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/search"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:brightness-110"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:bg-accent-hover"
           >
             Browse all products
           </Link>
