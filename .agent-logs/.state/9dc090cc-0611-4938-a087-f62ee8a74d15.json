@@ -6,6 +6,7 @@
   "first_prompt_time": "2026-09-18T14:02:20.230Z",
   "last_prompt_time": "2026-09-18T14:07:12.345Z",
   "model": "claude-opus-5",
-  "last_logged_uuid": "127ed0eb-5e16-47a4-beb7-110e7cabefee",
-  "awaiting_response": true
+  "last_logged_uuid": "a146d38d-b9f0-468a-9092-e67eed27d51d",
+  "awaiting_response": false,
+  "last_source": "payload"
 }
