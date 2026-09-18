@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddToCart } from "@/components/add-to-cart";
 import { SiteHeader } from "@/components/site-header";
 import { RatingLine, StarRating } from "@/components/star-rating";
 import { formatCount, formatPrice } from "@/lib/format";
@@ -265,9 +266,10 @@ export default async function ProductPage({
                 </div>
               </dl>
 
+              <AddToCart variantId={variant.id} available={variant.available} />
+
               <p className="mt-4 rounded-md bg-surface-muted p-3 text-xs text-muted-ink">
-                Cart and checkout are not built yet, so there is no purchase button here. They
-                arrive in a later step.
+                Simulated checkout — no payment is taken and nothing ships.
               </p>
             </div>
           </aside>

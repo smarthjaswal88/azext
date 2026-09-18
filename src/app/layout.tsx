@@ -23,9 +23,9 @@ export default function RootLayout({
           <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-muted-ink">
             <p className="font-medium text-foreground">Shop — prototype</p>
             <p className="mt-2 max-w-2xl">
-              Browsing, search and product pages are built. Cart, checkout, product comparison
-              and AI-written explanations are not — they arrive in later steps, so you will not
-              find buttons for them here.
+              Browsing, search, product pages, cart and a simulated checkout are built.
+              Product comparison and AI-written explanations are not — they arrive in later
+              steps, so you will not find buttons for them here.
             </p>
             <p className="mt-3">
               All products, prices, images and reviews are invented for this prototype.

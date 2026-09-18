@@ -5,8 +5,9 @@ A shopping storefront with an optional AI product comparison feature.
 Shoppers browse, pick a product and check out directly. Alternatively they can compare up to
 three products using specifications, ratings, review insights and their own stated preferences.
 
-**Built so far:** a demo catalog, search with filtering and sorting, and product detail pages.
-**Not built:** cart, checkout, product comparison, AI explanations, authentication. You will not
+**Built so far:** a demo catalog, search with filtering and sorting, product detail pages, a
+persisted cart, and a simulated checkout that records demo orders.
+**Not built:** product comparison, AI explanations, authentication, real payment. You will not
 find buttons for those — an absence is clearer than a control that does nothing.
 
 All products, prices, images and reviews are invented for this prototype.
@@ -32,6 +33,7 @@ No API credentials are required to run, lint, typecheck or build the app at this
 
 | Command | What it does |
 |---|---|
+| `npm run check:cart` | Behavioural checks for the persisted cart store |
 | `npm run dev` | Development server |
 | `npm run build` | Production build |
 | `npm start` | Serve the production build (run `build` first) |
@@ -52,6 +54,36 @@ No API credentials are required to run, lint, typecheck or build the app at this
 
 Local env files are gitignored; `.env.example` is deliberately not.
 
+## Supabase setup
+
+Demo orders are stored in Supabase. **Without it the app runs and the whole catalog works, but
+checkout is disabled and says so** — nothing is kept in memory as a stand-in, because an order
+that disappeared on the next restart would look like it had worked.
+
+1. Create a Supabase project.
+2. Apply the migration in `supabase/migrations/0001_demo_orders.sql`, either with the Supabase
+   CLI (`supabase db push`) or by pasting it into the SQL editor.
+3. Put these in `.env.local` — copy the values from **Project Settings → API**:
+
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=
+   SUPABASE_SERVICE_ROLE_KEY=
+   ```
+
+4. Restart `npm run dev`. Checkout enables itself once both are set.
+
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` is listed in `.env.example` for later steps. Order storage does
+not use it.
+
+### How orders stay private
+
+Row-level security is enabled on both tables and **no policy is ever created**, so the `anon`
+and `authenticated` roles can read nothing at all. Every read and write happens in server code
+holding the service-role key, which bypasses RLS and never reaches the browser.
+
+A guest reaches their own order through a confirmation token of 32 random bytes in the URL.
+They cannot query the table, so they cannot enumerate or guess their way to anyone else's order.
+
 ## Architecture
 
 Next.js App Router with TypeScript and Tailwind CSS v4.
@@ -64,11 +96,20 @@ src/app/
   not-found.tsx         404
   search/page.tsx       results, filters, sorting
   product/[slug]/       product detail
+  cart/page.tsx         cart
+  checkout/page.tsx     simulated checkout
+  order/[token]/        order confirmation, readable after a refresh
+  api/cart/summary/     prices a cart from the catalog
+  api/orders/           places a demo order
 src/components/         presentational pieces used by more than one page
 src/lib/                types and pure helpers, safe on client or server
 src/server/
   catalog.ts            the only way the app reads catalog data
   demo-data.ts          the demo catalog itself
+  pricing.ts            turns variant ids and quantities into money
+  orders.ts             demo order persistence
+  supabase.ts           server-only Supabase access
+supabase/migrations/    SQL for the orders tables
 scripts/
   generate-product-images.py   generates everything in public/images/
 ```
@@ -98,8 +139,14 @@ recorded here. These are our choices, not observations of any other retailer.
 | Rating averages are **derived from the histogram** | The summary cannot contradict itself. |
 | Reviews belong to a **product** and optionally name a purchased variant | Matches what recon showed: reviews pool across variants while keeping attribution. |
 | Search, filter, sort and variant selection all live in **URL parameters** | Results are shareable, the back button works, and no client JavaScript is needed. |
-| **No cart, checkout or comparison controls anywhere** | Those features do not exist yet. |
-| Sort "Featured" means **most-rated first** | We have no merchandising signal; popularity is an honest stand-in and is labelled as a sort, not a recommendation. |
+| **No comparison or AI controls anywhere** | Those features do not exist yet. |
+| The cart stores **only variant ids and quantities** | Prices are resolved server-side on every render. Nothing in localStorage can change what is charged. |
+| Cart and quantity changes are **client state, not URL navigation** | Catalog pages keep state in the URL because it should be shareable. A cart edit is neither shareable nor a navigation. |
+| Hydration uses **`useSyncExternalStore` with an undefined server snapshot** | A `hydrated` flag set from persist's rehydrate callback cannot work: with synchronous storage that callback runs while the store is still being created, so the flag never flips. |
+| Buy now **never touches the cart** | It checks out one selection. Merging it into the cart, or clearing the cart, would both lose work the shopper did not ask to lose. |
+| Order idempotency is enforced **in the database**, on a client-generated key | A unique constraint is the only thing that actually holds under concurrent double clicks. The key is stable across retries so a retry after a timeout resolves to the first order. |
+| The cart is cleared **only after** an order is confirmed, and only of what was bought | Clearing first loses the cart if the write fails. |
+| The popularity sort is called **"Most rated"** | It orders by number of ratings. Calling it "Featured" implied a merchandised ordering we do not have. |
 | A product matches a price filter when **any variant** falls in range | The shopper can select that variant. |
 | Specs reading "None" are **excluded from search text** | Otherwise searching "noise cancelling" returns every pair of headphones, including those that say "None". |
 
@@ -122,7 +169,7 @@ blocks this step. Both are recorded in `recon/notes.md` §5.2b against the step 
 |---|---|---|
 | 1 | Scaffold: App Router, TypeScript, Tailwind, ESLint | done |
 | 2a | Catalog, search, product details | done |
-| 2b | Cart and simulated checkout | not started |
+| 2b | Cart and simulated checkout | done |
 | 3 | Optional comparison for up to three products | not started |
 | 4 | Review-confidence and personal-suitability explanations via DeepSeek | not started |
 

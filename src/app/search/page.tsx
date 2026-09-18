@@ -10,7 +10,7 @@ export const metadata = { title: "Search" };
 type RawParams = Record<string, string | string[] | undefined>;
 
 const SORTS: { key: SortKey; label: string }[] = [
-  { key: "featured", label: "Featured" },
+  { key: "featured", label: "Most rated" },
   { key: "price-asc", label: "Price: low to high" },
   { key: "price-desc", label: "Price: high to low" },
   { key: "rating-desc", label: "Average rating" },

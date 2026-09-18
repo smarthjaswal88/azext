@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { getCategories } from "@/server/catalog";
+import { CartCount } from "./cart-count";
 
 /** Header is a server component: the search box is a plain GET form, so text
- *  search works with no client JavaScript and lands in the URL by itself.
+ *  search works with no client JavaScript and lands in the URL by itself. The
+ *  cart count is the one island of client state, since it lives in
+ *  localStorage.
  *
- *  There is deliberately no cart or account control here. Neither feature
- *  exists yet and a button that looks live but does nothing is worse than an
- *  absence. */
+ *  There is still no account control — authentication does not exist yet. */
 export async function SiteHeader({ defaultQuery = "" }: { defaultQuery?: string }) {
   const categories = await getCategories();
 
@@ -47,12 +48,11 @@ export async function SiteHeader({ defaultQuery = "" }: { defaultQuery?: string 
             </button>
           </form>
 
-          <Link
-            href="/search"
-            className="shrink-0 text-sm hover:underline"
-          >
+          <Link href="/search" className="shrink-0 text-sm hover:underline">
             All products
           </Link>
+
+          <CartCount />
         </div>
       </div>
 

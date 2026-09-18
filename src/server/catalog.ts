@@ -10,7 +10,14 @@
  * single call site.
  */
 
-import type { Category, CategoryId, Product, SearchQuery, SortKey } from "@/lib/types";
+import type {
+  Category,
+  CategoryId,
+  Product,
+  SearchQuery,
+  SortKey,
+  Variant,
+} from "@/lib/types";
 import { fromPriceCents } from "@/lib/product";
 import { DEMO_PRODUCTS } from "./demo-data";
 
@@ -102,7 +109,8 @@ function sortProducts(products: Product[], sort: SortKey): Product[] {
       );
     case "featured":
     default:
-      // Popularity standing in for a merchandised order we do not have.
+      // Most rated first. Named for what it does rather than implying we have
+      // a merchandised ordering, which we do not.
       return out.sort((a, b) => b.rating.ratingCount - a.rating.ratingCount);
   }
 }
@@ -128,6 +136,19 @@ export async function searchProducts(query: SearchQuery): Promise<Product[]> {
   }
 
   return sortProducts(results, query.sort);
+}
+
+/** Resolves a variant id to the variant and the product that owns it. This is
+ *  the lookup order pricing depends on: the browser sends variant ids and
+ *  nothing else, and every price comes from here. */
+export async function getVariantById(
+  variantId: string,
+): Promise<{ product: Product; variant: Variant } | undefined> {
+  for (const product of DEMO_PRODUCTS) {
+    const variant = product.variants.find((v) => v.id === variantId);
+    if (variant) return { product, variant };
+  }
+  return undefined;
 }
 
 /** Bounds for the price filter's placeholder text. */
