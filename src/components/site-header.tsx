@@ -3,13 +3,11 @@ import { getCategories } from "@/server/catalog";
 import { CartCount } from "./cart-count";
 import { SearchIcon } from "./icons";
 
-/** Dark navy header over a secondary navigation strip, then one compact line of
- *  demo disclosure. The search box is a plain GET form, so text search works
- *  without client JavaScript and lands in the URL by itself; the cart count is
- *  the only island of client state.
- *
- *  No account control — authentication does not exist. */
-export async function SiteHeader({ defaultQuery = "" }: { defaultQuery?: string }) {
+export async function SiteHeader({
+  defaultQuery = "",
+}: {
+  defaultQuery?: string;
+}) {
   const categories = await getCategories();
 
   return (
@@ -72,10 +70,6 @@ export async function SiteHeader({ defaultQuery = "" }: { defaultQuery?: string 
           ))}
         </div>
       </nav>
-
-      <p className="border-b border-border-subtle bg-surface px-3 py-1 text-center text-[11px] leading-tight text-ink-muted sm:px-4">
-        Demo store — products, prices and reviews are fictional. Nothing can be bought.
-      </p>
     </header>
   );
 }
