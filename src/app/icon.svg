@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!--
+    Storefront favicon. Drawn here; no downloaded asset, no brand mark.
+
+    Colours are the two the site already uses: the navy header (#131a22) and the
+    purchase-control yellow (#ffd814).
+
+    Built for 16x16 first. Everything is a large shape with thick edges: the bag
+    body fills most of the canvas, and the handle arch stands 5.9 units clear of
+    it - about 18% of the viewBox - so at 16px it is still roughly three pixels
+    of negative space rather than a hairline that vanishes. No text, no
+    gradient, no detail that disappears at small sizes.
+  -->
+  <rect width="32" height="32" rx="7" fill="#131a22"/>
+  <path
+    d="M10.1 14.4 a5.9 5.9 0 0 1 11.8 0"
+    fill="none"
+    stroke="#ffd814"
+    stroke-width="3.6"
+    stroke-linecap="round"
+  />
+  <rect x="5.2" y="14.2" width="21.6" height="13.6" rx="2.6" fill="#ffd814"/>
+</svg>
