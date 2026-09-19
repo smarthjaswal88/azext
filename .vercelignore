@@ -1,0 +1,11 @@
+# Excluded from the deployment upload. None of these is imported by the app or
+# read at build or runtime — they are assignment evidence and tooling that only
+# need to live in Git.
+#
+# recon/ alone is 9.4 MB of the 11 MB tracked, almost all of it screenshots.
+
+recon/
+.agent-logs/
+CAPTURE-TEST.md
+scripts/
+supabase/

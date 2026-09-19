@@ -157,6 +157,51 @@ holding the service-role key, which bypasses RLS and never reaches the browser.
 A guest reaches their own order through a confirmation token of 32 random bytes in the URL.
 They cannot query the table, so they cannot enumerate or guess their way to anyone else's order.
 
+## Deploying to Vercel
+
+Zero-config: it is a standard Next.js App Router project, so Vercel's framework preset handles
+the build. There is no `vercel.json` and none is needed. Two small files exist purely for
+deployment and change no behaviour:
+
+- `.vercelignore` — keeps `recon/`, `.agent-logs/`, `CAPTURE-TEST.md`, `scripts/` and
+  `supabase/` out of the upload. None is imported at build or runtime, and `recon/` alone is
+  10 MB of screenshots. Upload drops from about 10.8 MB to 0.8 MB.
+- `engines.node` in `package.json` — Next 16 needs Node 20.9+. Vercel reads this to pick the
+  runtime major.
+
+Product images are SVGs served straight from `/public`; Next skips the image optimizer for SVG
+entirely (`/_next/image` appears zero times in the build output), so no image configuration and
+no optimization spend.
+
+### Environment variables to set in Vercel
+
+Project → **Settings → Environment Variables**. Set values there, never in the repository.
+
+| Variable | Needed for | Environments | Notes |
+|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | checkout | Production (+ Preview) | Inlined at build time, so it must exist before the build runs |
+| `SUPABASE_SECRET_KEY` | checkout | Production (+ Preview) | The `sb_secret_…` key. Server-only. `SUPABASE_SERVICE_ROLE_KEY` is still accepted as a fallback name |
+| `AI_VISITOR_SALT` | AI rate limiting | Production | Only read when AI is enabled. Harmless to set early |
+| `DEEPSEEK_API_KEY` | AI guidance | Production | Not enough on its own to spend — see below |
+| `AI_LIVE_REQUESTS` | AI guidance | **leave unset** | The master switch |
+
+**Leave `AI_LIVE_REQUESTS` unset.** With it absent the guidance route refuses every request
+before any provider call, and the comparison page renders "AI guidance is currently
+unavailable" with no button. Browsing, search, cart and checkout are unaffected. Setting it to
+exactly `enabled` is the single action that turns paid requests on, and it needs a redeploy or
+a restart to take effect.
+
+The Supabase project the deployment points at must already have migrations `0001` and `0002`
+applied, or checkout will fail at the point of writing an order.
+
+### Things to weigh before making it public
+
+- **There is no authentication and no rate limit on order creation.** Anyone who finds the URL
+  can write demo order rows. Fine for a review link; worth a limit before wider exposure.
+- The header no longer carries a demo disclosure. The footer and the reviews section still do.
+- Orders are reachable only with their 43-character confirmation token, and RLS denies the anon
+  role outright, so one visitor cannot see another's order.
+
 ## Architecture
 
 Next.js App Router with TypeScript and Tailwind CSS v4.
