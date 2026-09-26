@@ -54,6 +54,7 @@ export const useCompareStore = create<CompareState>()(
       clear: () => set({ items: [] }),
     }),
     {
+      // Kept from before the rename to Vetra, so saved comparisons survive.
       name: "nexus-compare-v1",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ items: state.items }),

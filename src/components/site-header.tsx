@@ -1,17 +1,14 @@
 import Link from "next/link";
-import { NexusMark } from "./icons";
+import { VetraMark } from "./icons";
 import { SiteNav } from "./site-nav";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-graphite-950/75 backdrop-blur-xl">
-      <div className="container-app flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3 rounded-xl py-1 pr-2">
-          <NexusMark size={30} />
-          <span className="text-lg font-semibold tracking-tight text-fg">Nexus</span>
-          <span className="hidden rounded-full border border-line-strong px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-subtle md:inline">
-            Product intelligence
-          </span>
+    <header className="sticky top-0 z-40 border-b border-line bg-graphite-950/80 backdrop-blur-xl">
+      <div className="container-app flex h-14 items-center justify-between gap-3">
+        <Link href="/" className="flex items-center gap-2.5 rounded-xl py-1 pr-2">
+          <VetraMark size={26} />
+          <span className="text-base font-semibold tracking-tight text-fg">Vetra</span>
         </Link>
         <SiteNav />
       </div>

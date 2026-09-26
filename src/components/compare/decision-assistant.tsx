@@ -130,7 +130,7 @@ export function DecisionAssistant({ products }: { products: CatalogProductDetail
             <div>
               <p className="eyebrow">Decision assistant</p>
               <h2 id={`${id}-heading`} className="mt-1 text-xl font-semibold tracking-tight text-fg">
-                Tell Nexus what matters to you
+                Tell Vetra what matters to you
               </h2>
               <p className="mt-1 max-w-2xl text-sm text-fg-muted">
                 The assistant weighs these {products.length} products against your need, citing the
@@ -193,7 +193,7 @@ export function DecisionAssistant({ products }: { products: CatalogProductDetail
         </p>
 
         {availability === "unavailable" && (
-          <div role="status" className="mt-5 rounded-2xl border border-line-strong bg-white/3 p-4">
+          <div role="status" className="mt-5 rounded-2xl border border-line-strong bg-tint/3 p-4">
             <p className="text-sm font-semibold text-fg">The decision assistant is switched off in this deployment</p>
             <p className="mt-1 text-sm leading-relaxed text-fg-muted">
               Nothing is sent while it is off — no AI request is made from this page, and no answer is
@@ -253,7 +253,7 @@ export function DecisionAssistant({ products }: { products: CatalogProductDetail
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
               <div
-                className={`rounded-2xl border bg-white/3 p-5 ${
+                className={`rounded-2xl border bg-tint/3 p-5 ${
                   phase.result.recommendation.slug ? toneOf(phase.result.recommendation.slug).ring : "border-line-strong"
                 }`}
               >
@@ -274,7 +274,7 @@ export function DecisionAssistant({ products }: { products: CatalogProductDetail
                 )}
               </div>
 
-              <div className="rounded-2xl border border-line-strong bg-white/3 p-5">
+              <div className="rounded-2xl border border-line-strong bg-tint/3 p-5">
                 <p className="eyebrow">Confidence</p>
                 <p className="mt-2">
                   <span className={`badge ${CONFIDENCE_BADGE[phase.result.confidence.level]} text-sm`}>
@@ -309,7 +309,7 @@ export function DecisionAssistant({ products }: { products: CatalogProductDetail
                   {phase.result.evidence.map((e) => (
                     <li
                       key={`${e.slug}-${e.field}`}
-                      className="grid gap-1 rounded-2xl border border-line bg-white/2 p-3 text-sm sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)] sm:gap-4"
+                      className="grid gap-1 rounded-2xl border border-line bg-tint/2 p-3 text-sm sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)] sm:gap-4"
                     >
                       <span className="flex min-w-0 items-center gap-2 text-xs text-fg-muted">
                         <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${toneOf(e.slug).dot}`} />

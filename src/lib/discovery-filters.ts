@@ -1,6 +1,6 @@
 /**
  * Discovery filter state, kept in the URL so every view is shareable and the
- * back button steps through changes.
+ * back button steps through changes (the page writes it with the History API).
  *
  * Text, category, brand, price and sort go to the catalog API. Product type
  * and minimum rating are not API parameters, so they are applied in the
@@ -47,6 +47,16 @@ export const EMPTY_FILTERS: DiscoveryFilters = {
 const ID = /^[a-z0-9_-]{1,40}$/;
 const DOLLARS = /^\d{1,7}(\.\d{1,2})?$/;
 
+/** The catalog API's price ceiling (MAX_PRICE_CENTS in catalog-api.ts), in
+ *  dollars. A larger bound would be refused, so it is never sent. */
+export const MAX_FILTER_DOLLARS = 1_000_000;
+
+/** Whether a typed price is in the form the URL keeps, e.g. "25" or "25.50",
+ *  and within what the catalog API accepts. */
+export function isDollarAmount(value: string): boolean {
+  return DOLLARS.test(value) && Number(value) <= MAX_FILTER_DOLLARS;
+}
+
 function clean(value: string | null, max: number): string {
   const text = (value ?? "").replace(/\p{Cc}/gu, "").trim();
   return text.length > max ? text.slice(0, max) : text;
@@ -64,8 +74,8 @@ export function parseFilters(params: URLSearchParams): DiscoveryFilters {
     category: ID.test(category) ? category : "",
     type: ID.test(type) ? type : "",
     brand: clean(params.get("brand"), 120),
-    min: DOLLARS.test(min) ? min : "",
-    max: DOLLARS.test(max) ? max : "",
+    min: isDollarAmount(min) ? min : "",
+    max: isDollarAmount(max) ? max : "",
     rating: RATING_OPTIONS.some((o) => o.value === rating) ? (rating as RatingFilter) : "",
     sort: (SORT_OPTIONS.find((o) => o.key === sort)?.key ?? "featured") as SortKey,
   };

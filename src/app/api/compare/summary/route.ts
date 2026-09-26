@@ -5,7 +5,7 @@ import { getProductsBySlugs } from "@/server/catalog";
 
 /**
  * LEGACY. Serves the retired static demo catalog (src/server/catalog.ts) and is
- * not used by the Nexus interface, whose compare tray and board read the live
+ * not used by the Vetra interface, whose compare tray and board read the live
  * Supabase catalog through /api/catalog/*. Kept so the route keeps answering;
  * safe to delete together with the static catalog once nothing depends on it.
  */

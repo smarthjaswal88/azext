@@ -30,7 +30,7 @@ export function RemoteImage({
   const [failed, setFailed] = useState(false);
 
   return (
-    <div className={`stage ${className}`}>
+    <div className={`stage @container ${className}`}>
       {src && !failed ? (
         <Image
           src={src}
@@ -46,7 +46,8 @@ export function RemoteImage({
       ) : (
         <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-500">
           <ImageIcon size={26} />
-          <span className="text-xs font-medium">No image in the listing</span>
+          {/* Thumbnails are too small for the words; they stay for screen readers. */}
+          <span className="text-xs font-medium @max-[7rem]:sr-only">No image in the listing</span>
         </span>
       )}
     </div>

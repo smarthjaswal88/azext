@@ -52,7 +52,7 @@ export function StatePanel({
         className={`flex size-11 items-center justify-center rounded-2xl border ${
           tone === "error"
             ? "border-negative/40 bg-negative/10 text-negative"
-            : "border-line-strong bg-white/5 text-accent-strong"
+            : "border-line-strong bg-tint/5 text-accent-strong"
         }`}
       >
         <Icon size={20} />
@@ -74,7 +74,7 @@ export function DemoNotice({ className = "" }: { className?: string }) {
     <p className={`flex gap-2 text-xs leading-relaxed text-fg-subtle ${className}`}>
       <InfoIcon size={15} className="mt-px shrink-0" />
       <span>
-        Demo order flow. Nexus does not sell, stock or ship products — no payment is taken and
+        Demo order flow. Vetra does not sell, stock or ship products — no payment is taken and
         nothing is delivered. Prices come from the source listing when it was collected.
       </span>
     </p>

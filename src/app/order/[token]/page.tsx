@@ -56,7 +56,7 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-line bg-white/3 p-4">
+            <div className="mt-6 rounded-2xl border border-line bg-tint/3 p-4">
               <p className="text-xs text-fg-subtle">Confirmation reference</p>
               <p className="mt-1 break-all font-mono text-sm text-fg">{order.confirmationToken}</p>
               <p className="mt-2 text-xs text-fg-subtle">

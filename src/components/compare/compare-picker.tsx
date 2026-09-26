@@ -101,7 +101,7 @@ function CandidateList({ category, items }: { category: string; items: CompareIt
   return (
     <ul className="mt-5 grid max-h-[26rem] gap-2 overflow-y-auto pr-1">
       {candidates.map((p) => (
-        <li key={p.id} className="flex items-center gap-3 rounded-2xl border border-line bg-white/2 p-2">
+        <li key={p.id} className="flex items-center gap-3 rounded-2xl border border-line bg-tint/2 p-2">
           <RemoteImage src={p.imageUrl} alt="" sizes="56px" className="size-14 shrink-0" padding="p-1" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-fg">{p.title}</p>

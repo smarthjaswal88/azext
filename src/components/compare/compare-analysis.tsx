@@ -71,7 +71,7 @@ export function InsightSummary({ products }: { products: CatalogProductDetail[] 
             return (
               <li
                 key={insight.key}
-                className={`rounded-2xl border bg-white/2 p-4 ${insight.slugs.length === 1 ? PRODUCT_TONES[first].ring : "border-line-strong"}`}
+                className={`rounded-2xl border bg-tint/2 p-4 ${insight.slugs.length === 1 ? PRODUCT_TONES[first].ring : "border-line-strong"}`}
               >
                 <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent-strong">
                   <SparkIcon size={14} />
@@ -115,7 +115,7 @@ export function SignalBars({ products }: { products: CatalogProductDetail[] }) {
                   <span className="min-w-0 overflow-hidden text-fg-muted">
                     <ProductKey index={i} product={products[i]} />
                   </span>
-                  <span aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-white/7">
+                  <span aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-tint/7">
                     <span
                       className={`block h-full rounded-full bg-linear-to-r ${PRODUCT_TONES[i].bar}`}
                       style={{ width: `${Math.round((value.ratio ?? 0) * 100)}%` }}

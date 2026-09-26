@@ -115,20 +115,33 @@ export const ImageIcon = (p: IconProps) => (
   </Svg>
 );
 
-/** The Nexus mark: three linked nodes. */
-export function NexusMark({ size = 28 }: { size?: number }) {
+export const SunIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2.8v2.1M12 19.1v2.1M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2.8 12h2.1M19.1 12h2.1M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5" />
+  </Svg>
+);
+
+export const MoonIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6Z" />
+  </Svg>
+);
+
+/** The Vetra mark: three linked nodes. */
+export function VetraMark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
       <defs>
-        <linearGradient id="nexus-mark" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="vetra-mark" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#9db3ff" />
           <stop offset="0.5" stopColor="#6f8dff" />
           <stop offset="1" stopColor="#a88bfa" />
         </linearGradient>
       </defs>
-      <rect x="1" y="1" width="30" height="30" rx="9" fill="#12151d" stroke="url(#nexus-mark)" strokeWidth="1.5" />
-      <path d="M10 21.5 16 10.5l6 11" fill="none" stroke="url(#nexus-mark)" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M10 21.5h12" fill="none" stroke="url(#nexus-mark)" strokeWidth="1.8" strokeLinecap="round" opacity="0.55" />
+      <rect x="1" y="1" width="30" height="30" rx="9" fill="#12151d" stroke="url(#vetra-mark)" strokeWidth="1.5" />
+      <path d="M10 21.5 16 10.5l6 11" fill="none" stroke="url(#vetra-mark)" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M10 21.5h12" fill="none" stroke="url(#vetra-mark)" strokeWidth="1.8" strokeLinecap="round" opacity="0.55" />
       <circle cx="16" cy="10.5" r="2.4" fill="#9db3ff" />
       <circle cx="10" cy="21.5" r="2.4" fill="#6f8dff" />
       <circle cx="22" cy="21.5" r="2.4" fill="#a88bfa" />

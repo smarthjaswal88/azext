@@ -9,10 +9,13 @@ export function RatingSummary({
   rating,
   ratingCount,
   size = "md",
+  countLabel = false,
 }: {
   rating: number | null;
   ratingCount: number | null;
   size?: "sm" | "md";
+  /** Show "ratings" after the count, where the number stands alone. */
+  countLabel?: boolean;
 }) {
   if (rating === null) {
     return <span className="text-xs text-fg-subtle">Not rated in the listing</span>;
@@ -23,7 +26,7 @@ export function RatingSummary({
       <span className="font-semibold tabular-nums text-fg">{rating.toFixed(1)}</span>
       <span
         aria-hidden="true"
-        className={`relative overflow-hidden rounded-full bg-white/10 ${size === "sm" ? "h-1.5 w-12" : "h-2 w-16"}`}
+        className={`relative overflow-hidden rounded-full bg-tint/10 ${size === "sm" ? "h-1.5 w-12" : "h-2 w-16"}`}
       >
         <span
           className="absolute inset-y-0 left-0 rounded-full bg-linear-to-r from-accent to-violet"
@@ -33,6 +36,7 @@ export function RatingSummary({
       {ratingCount !== null && (
         <span aria-hidden="true" className="tabular-nums text-fg-subtle">
           {formatCount(ratingCount)}
+          {countLabel && ` ${ratingCount === 1 ? "rating" : "ratings"}`}
         </span>
       )}
       <span className="sr-only">

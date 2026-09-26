@@ -1,58 +1,120 @@
 @import "tailwindcss";
 
 /**
- * Nexus — a dark product-intelligence interface.
+ * Vetra — a product-decision interface in two themes.
  *
- * Graphite surfaces, soft glass panels, one electric accent that runs from
- * blue to violet, and high-contrast type. Retailer photographs are shot on
- * white, so they sit on a light "stage" rather than straight on graphite.
+ * Dark (the default identity): graphite surfaces, soft glass panels, one
+ * electric accent that runs from blue to violet, and high-contrast type.
+ * Light: a pale blue-grey page, white glass cards with blue-grey borders,
+ * deep navy type, and the same blue-to-violet accent, deepened for contrast.
+ * Retailer photographs are shot on white, so in both themes they sit on
+ * their own light "stage".
  *
- * Contrast (WCAG 2.x, measured against graphite-900 #0d1016):
- *   fg        #f3f5fa   ~17:1
- *   fg-muted  #a9b1c6   ~8.5:1
- *   fg-subtle #8089a0   ~5.4:1  (AA for body text; never smaller than 12px)
- *   accent    #6f8dff   ~6.1:1  and accent-ink on accent ~6:1
- *   violet    #a88bfa   ~6.9:1
- *   positive  #4ade80, caution #fbbf24, negative #f87171 all above 6:1
+ * Every colour is a semantic token defined once, with both values:
+ * `light-dark(LIGHT, DARK)`. The theme is simply the root's color-scheme,
+ * set from data-theme by the inline script in the root layout, which also
+ * themes native controls. Light is the default for every first visit (and
+ * without scripts); dark is a saved choice made with the toggle.
+ * Components use the tokens (text-fg, bg-tint/6, border-line, …), never
+ * raw colours.
+ *
+ * Contrast (WCAG 2.x), dark on graphite-900 / light on the page #f3f6fb:
+ *   fg            ~17:1  / ~16:1
+ *   fg-muted      ~8.5:1 / ~8.6:1
+ *   fg-subtle     ~5.4:1 / ~5.7:1   (≥4.5:1 also on white, pressed chips)
+ *   accent-strong ~9:1   / ~6.6:1   (link and selected text)
+ *   accent-ink on the accent fill ~6:1 / white on it ~5.5:1
+ *   positive, caution, negative ≥6:1 / ≥5.4:1 (≥5:1 on their tints)
+ *   field borders 3.1:1 against their surface in both (non-text, 1.4.11)
+ *   focus ring    ~9.7:1 / ~5.9:1
  */
 
 :root {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
   color-scheme: dark;
-  --focus-ring: #9db3ff;
 }
 
 @theme {
-  --color-void: #06070b;
-  --color-graphite-950: #090b10;
-  --color-graphite-900: #0d1016;
-  --color-graphite-850: #12151d;
-  --color-graphite-800: #181c26;
-  --color-graphite-700: #232937;
-  --color-graphite-600: #2f3647;
+  /* Backdrops behind dialogs. */
+  --color-void: light-dark(#0b1530, #06070b);
+  /* Surfaces, from the page (950) up to raised panels and dividers. */
+  --color-graphite-950: light-dark(#f3f6fb, #090b10);
+  --color-graphite-900: light-dark(#eaeff6, #0d1016);
+  --color-graphite-850: light-dark(#ffffff, #12151d);
+  --color-graphite-800: light-dark(#f4f6fa, #181c26);
+  --color-graphite-700: light-dark(#dde3ed, #232937);
+  --color-graphite-600: light-dark(#c5cedc, #2f3647);
 
-  --color-fg: #f3f5fa;
-  --color-fg-muted: #a9b1c6;
-  --color-fg-subtle: #8089a0;
+  --color-fg: light-dark(#0e1a33, #f3f5fa);
+  --color-fg-muted: light-dark(#3b4763, #a9b1c6);
+  --color-fg-subtle: light-dark(#56627c, #8089a0);
 
-  --color-line: rgb(255 255 255 / 0.08);
-  --color-line-strong: rgb(255 255 255 / 0.16);
+  --color-line: light-dark(rgb(22 39 77 / 0.11), rgb(255 255 255 / 0.08));
+  --color-line-strong: light-dark(rgb(22 39 77 / 0.2), rgb(255 255 255 / 0.16));
+  /* Input boundaries: 3:1 against their surface. */
+  --color-field-border: light-dark(rgb(22 39 77 / 0.5), rgb(255 255 255 / 0.34));
+  /* The overlay colour for hovers, tracks and faint fills: white on dark,
+     navy on light. Used with an opacity, e.g. bg-tint/6. */
+  --color-tint: light-dark(#16274d, #ffffff);
 
-  --color-accent: #6f8dff;
-  --color-accent-strong: #9db3ff;
-  --color-violet: #a88bfa;
-  --color-accent-ink: #070a14;
+  --color-accent: light-dark(#3d5ce0, #6f8dff);
+  --color-accent-strong: light-dark(#3450cc, #9db3ff);
+  --color-violet: light-dark(#6d44d9, #a88bfa);
+  --color-accent-ink: light-dark(#ffffff, #070a14);
 
-  --color-positive: #4ade80;
-  --color-caution: #fbbf24;
-  --color-negative: #f87171;
+  --color-positive: light-dark(#106a34, #4ade80);
+  --color-caution: light-dark(#955600, #fbbf24);
+  --color-negative: light-dark(#bf2525, #f87171);
 
-  /* Light stage for photographs shot on white. */
-  --color-stage: #f4f6fb;
+  /* The light stage for photographs shot on white. */
+  --color-stage: light-dark(#eef2f8, #f4f6fb);
 
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* The theme toggle shows the theme it switches to, from the first paint. */
+.theme-icon-sun {
+  display: none;
+}
+:root[data-theme="dark"] .theme-icon-sun {
+  display: block;
+}
+:root[data-theme="dark"] .theme-icon-moon {
+  display: none;
+}
+
+/* Composite surface tokens, for the component classes below. */
+:root {
+  --focus-ring: light-dark(#3651d4, #9db3ff);
+
+  --page-glow-a: light-dark(rgb(61 92 224 / 0.09), rgb(111 141 255 / 0.16));
+  --page-glow-b: light-dark(rgb(109 68 217 / 0.07), rgb(168 139 250 / 0.13));
+
+  --surface-glass-from: light-dark(rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.055));
+  --surface-glass-to: light-dark(rgb(255 255 255 / 0.78), rgb(255 255 255 / 0.02));
+  --surface-glass-shadow:
+    0 1px 2px light-dark(rgb(22 39 77 / 0.05), transparent),
+    0 12px 32px -20px light-dark(rgb(22 39 77 / 0.2), transparent);
+  --surface-strong-from: light-dark(rgb(255 255 255 / 0.97), rgb(24 28 38 / 0.92));
+  --surface-strong-to: light-dark(rgb(250 251 254 / 0.97), rgb(18 21 29 / 0.92));
+  --surface-sheet-from: light-dark(#ffffff, rgb(24 28 38 / 0.98));
+  --surface-sheet-to: light-dark(#f7f9fc, rgb(13 16 22 / 0.99));
+  --backdrop: light-dark(rgb(11 21 48 / 0.38), rgb(6 7 11 / 0.68));
+
+  --control-bg: light-dark(#ffffff, rgb(255 255 255 / 0.06));
+  --control-bg-hover: light-dark(#f1f4fa, rgb(255 255 255 / 0.1));
+  --chip-bg: light-dark(#ffffff, rgb(255 255 255 / 0.03));
+  --field-bg: light-dark(#ffffff, rgb(9 11 16 / 0.7));
+
+  --stage-from: #ffffff;
+  --stage-ring: light-dark(rgb(22 39 77 / 0.08), transparent);
+
+  --text-gradient-from: light-dark(#2440c4, #c9d5ff);
 }
 
 html {
@@ -64,21 +126,43 @@ body {
   color: var(--color-fg);
   font-family: var(--font-sans);
   background:
-    radial-gradient(1100px 520px at 12% -8%, rgb(111 141 255 / 0.16), transparent 62%),
-    radial-gradient(900px 480px at 96% -4%, rgb(168 139 250 / 0.13), transparent 60%),
+    radial-gradient(1100px 520px at 12% -8%, var(--page-glow-a), transparent 62%),
+    radial-gradient(900px 480px at 96% -4%, var(--page-glow-b), transparent 60%),
     var(--color-graphite-950);
   background-repeat: no-repeat;
 }
 
 ::selection {
-  background: rgb(111 141 255 / 0.4);
-  color: #ffffff;
+  background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  color: var(--color-fg);
 }
 
-:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-  border-radius: 10px;
+/* In the base layer, so a component or utility can replace the indicator
+   (a product card draws it around the whole card instead). */
+@layer base {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Keep a focused control clear of the sticky header (and, on the discovery
+   page below 1024px, the sticky search bar), and of the compare tray. */
+html {
+  scroll-padding-top: 4.5rem;
+}
+@media (max-width: 1023px) {
+  html:has(#results) {
+    scroll-padding-top: 8.75rem;
+  }
+}
+html:has(section[aria-label="Comparison shortlist"]) {
+  scroll-padding-bottom: 7rem;
+}
+@media (max-width: 639px) {
+  html:has(section[aria-label="Comparison shortlist"]) {
+    scroll-padding-bottom: 9.5rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -92,12 +176,32 @@ body {
   }
 }
 
-@keyframes nexus-shimmer {
+@keyframes vetra-shimmer {
   from {
     background-position: -200% 0;
   }
   to {
     background-position: 200% 0;
+  }
+}
+
+@keyframes vetra-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes vetra-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -140,28 +244,31 @@ body {
   /* ---- surfaces ------------------------------------------------------ */
 
   .glass {
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.02));
+    background: linear-gradient(180deg, var(--surface-glass-from), var(--surface-glass-to));
     border: 1px solid var(--color-line);
+    box-shadow: var(--surface-glass-shadow);
     border-radius: 1.25rem;
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
   }
   .glass-strong {
-    background: linear-gradient(180deg, rgb(24 28 38 / 0.92), rgb(18 21 29 / 0.92));
+    background: linear-gradient(180deg, var(--surface-strong-from), var(--surface-strong-to));
     border: 1px solid var(--color-line-strong);
+    box-shadow: var(--surface-glass-shadow);
     border-radius: 1.25rem;
     -webkit-backdrop-filter: blur(22px);
     backdrop-filter: blur(22px);
   }
   .glow {
     box-shadow:
-      0 0 0 1px rgb(111 141 255 / 0.18),
-      0 18px 60px -24px rgb(111 141 255 / 0.45);
+      0 0 0 1px color-mix(in srgb, var(--color-accent) 20%, transparent),
+      0 18px 60px -24px color-mix(in srgb, var(--color-accent) 45%, transparent);
   }
   .stage {
     position: relative;
     overflow: hidden;
-    background: radial-gradient(120% 100% at 50% 0%, #ffffff, var(--color-stage));
+    background: radial-gradient(120% 100% at 50% 0%, var(--stage-from), var(--color-stage));
+    box-shadow: inset 0 0 0 1px var(--stage-ring);
     border-radius: 1rem;
   }
 
@@ -175,7 +282,7 @@ body {
     color: var(--color-fg-subtle);
   }
   .text-gradient {
-    background: linear-gradient(95deg, #c9d5ff 0%, var(--color-accent) 45%, var(--color-violet) 100%);
+    background: linear-gradient(95deg, var(--text-gradient-from) 0%, var(--color-accent) 45%, var(--color-violet) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -183,7 +290,7 @@ body {
   .link {
     color: var(--color-accent-strong);
     text-decoration: underline;
-    text-decoration-color: rgb(157 179 255 / 0.45);
+    text-decoration-color: color-mix(in srgb, var(--color-accent-strong) 45%, transparent);
     text-underline-offset: 3px;
   }
   .link:hover {
@@ -221,26 +328,26 @@ body {
   .btn-primary {
     background: linear-gradient(100deg, var(--color-accent) 0%, var(--color-violet) 100%);
     color: var(--color-accent-ink);
-    box-shadow: 0 10px 30px -12px rgb(111 141 255 / 0.7);
+    box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--color-accent) 70%, transparent);
   }
   .btn-primary:not(:disabled):hover {
-    box-shadow: 0 14px 38px -12px rgb(168 139 250 / 0.85);
+    box-shadow: 0 14px 38px -12px color-mix(in srgb, var(--color-violet) 85%, transparent);
   }
   .btn-secondary {
-    background: rgb(255 255 255 / 0.06);
+    background: var(--control-bg);
     border-color: var(--color-line-strong);
     color: var(--color-fg);
   }
   .btn-secondary:not(:disabled):hover {
-    background: rgb(255 255 255 / 0.1);
-    border-color: rgb(255 255 255 / 0.28);
+    background: var(--control-bg-hover);
+    border-color: color-mix(in srgb, var(--color-tint) 28%, transparent);
   }
   .btn-ghost {
     background: transparent;
     color: var(--color-fg-muted);
   }
   .btn-ghost:not(:disabled):hover {
-    background: rgb(255 255 255 / 0.06);
+    background: color-mix(in srgb, var(--color-tint) 6%, transparent);
     color: var(--color-fg);
   }
   .btn-sm {
@@ -263,7 +370,7 @@ body {
     padding: 0.35rem 0.85rem;
     border: 1px solid var(--color-line-strong);
     border-radius: 999px;
-    background: rgb(255 255 255 / 0.03);
+    background: var(--chip-bg);
     color: var(--color-fg-muted);
     font-size: 0.8125rem;
     font-weight: 500;
@@ -275,30 +382,58 @@ body {
   }
   .chip:hover {
     color: var(--color-fg);
-    border-color: rgb(255 255 255 / 0.3);
+    border-color: color-mix(in srgb, var(--color-tint) 30%, transparent);
   }
   .chip[aria-pressed="true"],
   .chip[aria-current="true"] {
-    background: rgb(111 141 255 / 0.16);
-    border-color: rgb(111 141 255 / 0.7);
-    color: #ffffff;
+    background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 70%, transparent);
+    color: var(--color-fg);
+    font-weight: 600;
+  }
+  /* A check mark, so a selected chip is not told apart by colour alone. */
+  .chip[aria-pressed="true"]::before,
+  .chip[aria-current="true"]::before {
+    content: "";
+    width: 0.75rem;
+    height: 0.75rem;
+    flex-shrink: 0;
+    margin-left: -0.15rem;
+    background-color: currentColor;
+    -webkit-mask: var(--check-mask) center / contain no-repeat;
+    mask: var(--check-mask) center / contain no-repeat;
   }
   .chip:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+  }
+  /* Pointer-sized chips for the desktop sidebar; touch layouts keep .chip. */
+  .chip-dense {
+    min-height: 2rem;
+    padding: 0.28rem 0.7rem;
+    font-size: 0.78rem;
+    gap: 0.4rem;
   }
   .chip-count {
     font-size: 0.72rem;
     font-variant-numeric: tabular-nums;
     color: var(--color-fg-subtle);
   }
+  /* fg-subtle drops below 4.5:1 on the pressed fill. */
+  .chip[aria-pressed="true"] .chip-count {
+    color: var(--color-fg-muted);
+  }
+  /* Touch-sized chips inside the filter sheet. */
+  .sheet .chip {
+    min-height: 2.75rem;
+  }
 
   .field {
     width: 100%;
     min-width: 0;
     min-height: 2.75rem;
-    background: rgb(9 11 16 / 0.7);
-    border: 1px solid var(--color-line-strong);
+    background: var(--field-bg);
+    border: 1px solid var(--color-field-border);
     border-radius: 0.85rem;
     padding: 0.55rem 0.85rem;
     color: var(--color-fg);
@@ -309,7 +444,7 @@ body {
     color: var(--color-fg-subtle);
   }
   .field:hover {
-    border-color: rgb(255 255 255 / 0.28);
+    border-color: color-mix(in srgb, var(--color-tint) 55%, transparent);
   }
   select.field {
     appearance: none;
@@ -328,6 +463,36 @@ body {
     background: var(--color-graphite-850);
     color: var(--color-fg);
   }
+  /* 16px on phones, so focusing a field never zooms the page on iOS. */
+  @media (max-width: 639px) {
+    .field {
+      font-size: 1rem;
+    }
+  }
+  /* The search fields draw their own clear button. */
+  .field[type="search"]::-webkit-search-cancel-button {
+    appearance: none;
+  }
+
+  /* A listing fact on a product card: quiet, one line, never wider than the
+     card. The text inside is a truncating span, so a long one ends in an
+     ellipsis rather than being cut mid-letter. */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    border-radius: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 500;
+    line-height: 1.35;
+    border: 1px solid var(--color-line);
+    color: var(--color-fg-muted);
+    background: color-mix(in srgb, var(--color-tint) 3.5%, transparent);
+  }
 
   .badge {
     display: inline-flex;
@@ -340,27 +505,62 @@ body {
     line-height: 1.4;
     border: 1px solid var(--color-line-strong);
     color: var(--color-fg-muted);
-    background: rgb(255 255 255 / 0.04);
+    background: color-mix(in srgb, var(--color-tint) 4%, transparent);
   }
   .badge-accent {
-    border-color: rgb(111 141 255 / 0.45);
+    border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
     color: var(--color-accent-strong);
-    background: rgb(111 141 255 / 0.12);
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
   }
   .badge-positive {
-    border-color: rgb(74 222 128 / 0.35);
+    border-color: color-mix(in srgb, var(--color-positive) 35%, transparent);
     color: var(--color-positive);
-    background: rgb(74 222 128 / 0.1);
+    background: color-mix(in srgb, var(--color-positive) 10%, transparent);
   }
   .badge-caution {
-    border-color: rgb(251 191 36 / 0.35);
+    border-color: color-mix(in srgb, var(--color-caution) 35%, transparent);
     color: var(--color-caution);
-    background: rgb(251 191 36 / 0.1);
+    background: color-mix(in srgb, var(--color-caution) 10%, transparent);
   }
   .badge-negative {
-    border-color: rgb(248 113 113 / 0.35);
+    border-color: color-mix(in srgb, var(--color-negative) 35%, transparent);
     color: var(--color-negative);
-    background: rgb(248 113 113 / 0.1);
+    background: color-mix(in srgb, var(--color-negative) 10%, transparent);
+  }
+
+  /* ---- panels -------------------------------------------------------- */
+
+  .scroll-slim {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-tint) 16%, transparent) transparent;
+  }
+
+  /* The mobile filter sheet: a modal <dialog> that rises from the bottom. */
+  .sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 36rem;
+    max-height: min(88dvh, 46rem);
+    padding: 0;
+    border: 1px solid var(--color-line-strong);
+    border-bottom: 0;
+    border-radius: 1.5rem 1.5rem 0 0;
+    background: linear-gradient(180deg, var(--surface-sheet-from), var(--surface-sheet-to));
+    color: var(--color-fg);
+    box-shadow: 0 -24px 80px -24px light-dark(rgb(11 21 48 / 0.3), rgb(0 0 0 / 0.75));
+  }
+  .sheet[open] {
+    display: flex;
+    flex-direction: column;
+    animation: vetra-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .sheet::backdrop {
+    background: var(--backdrop);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    animation: vetra-fade-in 200ms ease-out;
   }
 
   /* ---- loading ------------------------------------------------------- */
@@ -369,11 +569,52 @@ body {
     border-radius: 0.75rem;
     background: linear-gradient(
       90deg,
-      rgb(255 255 255 / 0.04) 0%,
-      rgb(255 255 255 / 0.09) 50%,
-      rgb(255 255 255 / 0.04) 100%
+      color-mix(in srgb, var(--color-tint) 5%, transparent) 0%,
+      color-mix(in srgb, var(--color-tint) 10%, transparent) 50%,
+      color-mix(in srgb, var(--color-tint) 5%, transparent) 100%
     );
     background-size: 200% 100%;
-    animation: nexus-shimmer 1.6s ease-in-out infinite;
+    animation: vetra-shimmer 1.6s ease-in-out infinite;
+  }
+}
+
+:root {
+  --check-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+
+/* Windows high contrast and other forced-colour modes: the system replaces
+   colours, so states that rely on a fill get a shape or a line instead. */
+@media (forced-colors: active) {
+  .chip[aria-pressed="true"],
+  .chip[aria-current="true"] {
+    border-width: 2px;
+  }
+  .chip[aria-pressed="true"]::before,
+  .chip[aria-current="true"]::before {
+    forced-color-adjust: none;
+    background-color: ButtonText;
+  }
+  [aria-current="page"],
+  [aria-current="true"] {
+    text-decoration: underline;
+    text-underline-offset: 0.3em;
+  }
+  .text-gradient {
+    background: none;
+    color: CanvasText;
+  }
+  .nav-current-bar {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+  .skeleton {
+    border: 1px solid CanvasText;
+  }
+  .stage {
+    border: 1px solid CanvasText;
+  }
+  /* The drawn chevron is a background, which forced colours remove. */
+  select.field {
+    appearance: auto;
   }
 }

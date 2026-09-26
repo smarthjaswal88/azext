@@ -27,6 +27,7 @@ import {
   type CatalogSource,
   type CatalogVariant,
 } from "@/lib/catalog-api";
+import { HIGHLIGHT_SPEC_LABELS, countOptions, pickHighlights, pickMaterial } from "@/lib/listing-highlights";
 import { getServiceClient } from "./supabase";
 
 export class CatalogReadError extends Error {
@@ -39,6 +40,20 @@ export class CatalogReadError extends Error {
 const SUMMARY_COLUMNS =
   "id, slug, title, brand, category, product_type, price_cents, list_price_cents, currency, " +
   "rating, rating_count, availability, image_url, source, source_url, fetched_at, updated_at";
+
+/** Summary columns plus the child rows a card's highlights, material and
+ *  option counts are computed from. Only the computed values leave this
+ *  module. */
+const LIST_COLUMNS =
+  `${SUMMARY_COLUMNS}, ` +
+  "catalog_variants (price_cents, currency, availability), " +
+  "catalog_specifications (kind, label, value, position)";
+
+/** Narrows the embedded rows of a list query to the feature bullets and the
+ *  specification labels the highlight rules read. Parent rows, the count and
+ *  paging are unaffected: this filters the embed, it is not an inner join. */
+const LIST_SPEC_FILTER =
+  "kind.eq.feature," + `label.in.(${HIGHLIGHT_SPEC_LABELS.map((label) => `"${label}"`).join(",")})`;
 
 const DETAIL_COLUMNS =
   `${SUMMARY_COLUMNS}, description, availability_text, source_categories, ` +
@@ -84,7 +99,13 @@ interface SpecificationRow {
   position: number;
 }
 
-interface DetailRow extends ProductRow {
+/** What the summary mapping needs; both list and detail rows provide it. */
+interface ListRow extends ProductRow {
+  catalog_variants: Pick<VariantRow, "price_cents" | "currency" | "availability">[] | null;
+  catalog_specifications: SpecificationRow[] | null;
+}
+
+interface DetailRow extends ListRow {
   description: string | null;
   availability_text: string | null;
   source_categories: string[] | null;
@@ -110,7 +131,18 @@ function fail(error: PostgrestError): never {
   throw new CatalogReadError(missing ? "catalog_not_migrated" : "catalog_query_failed");
 }
 
-function toSummary(row: ProductRow): CatalogProductSummary {
+function toSummary(row: ListRow): CatalogProductSummary {
+  const rows = [...(row.catalog_specifications ?? [])].sort((a, b) => a.position - b.position);
+  const specifications = rows
+    .filter((spec) => spec.kind === "specification" && spec.label)
+    .map((spec) => ({ label: spec.label as string, value: spec.value }));
+  const features = rows.filter((spec) => spec.kind === "feature").map((spec) => spec.value);
+  const variants = (row.catalog_variants ?? []).map((variant) => ({
+    priceCents: variant.price_cents,
+    currency: variant.currency,
+    availability: variant.availability,
+  }));
+
   return {
     id: row.id,
     slug: row.slug,
@@ -130,6 +162,9 @@ function toSummary(row: ProductRow): CatalogProductSummary {
     sourceUrl: row.source_url,
     fetchedAt: row.fetched_at,
     updatedAt: row.updated_at,
+    highlights: pickHighlights(row.category, { specifications, features, productType: row.product_type }),
+    material: pickMaterial({ specifications }),
+    optionCounts: countOptions(variants),
   };
 }
 
@@ -161,9 +196,9 @@ export async function listCatalogProducts(
 ): Promise<CatalogProductListResponse> {
   const supabase = client();
   let request = applyFilters(
-    supabase.from("catalog_products").select(SUMMARY_COLUMNS, { count: "exact" }),
+    supabase.from("catalog_products").select(LIST_COLUMNS, { count: "exact" }),
     query,
-  );
+  ).or(LIST_SPEC_FILTER, { referencedTable: "catalog_specifications" });
 
   const nullsLast = { nullsFirst: false } as const;
   switch (query.sort) {
@@ -205,7 +240,7 @@ export async function listCatalogProducts(
   }
 
   return {
-    products: ((data ?? []) as unknown as ProductRow[]).map(toSummary),
+    products: ((data ?? []) as unknown as ListRow[]).map(toSummary),
     total: count ?? 0,
     limit: query.limit,
     offset: query.offset,

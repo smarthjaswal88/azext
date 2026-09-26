@@ -34,6 +34,23 @@ export interface CatalogProductSummary {
   sourceUrl: string;
   fetchedAt: string;
   updatedAt: string;
+  /** Up to three short tags from the listing's own specifications or
+   *  feature bullets (see src/lib/listing-highlights.ts). */
+  highlights: CatalogHighlight[];
+  /** The listing's material composition, in full, when it states one. */
+  material: string | null;
+  /** Options in the listing; those with a USD price; those that can be
+   *  selected (priced and not out of stock). */
+  optionCounts: { total: number; priced: number; purchasable: number };
+}
+
+export interface CatalogHighlight {
+  /** What the tag reads, e.g. "Active noise cancelling". */
+  text: string;
+  /** Where it was read from in the listing. */
+  source: "specification" | "feature";
+  /** The specification label, or "Feature". */
+  label: string;
 }
 
 export interface CatalogVariant {

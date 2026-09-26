@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { catalogCategoryLabel, catalogProductTypeLabel, type CatalogProductDetail } from "@/lib/catalog-api";
 import { AVAILABILITY_LABELS, purchasableVariants } from "@/lib/compare-insights";
+import { countOptions } from "@/lib/listing-highlights";
 import { useCatalogProduct } from "@/lib/use-catalog";
 import { CompareToggle } from "../compare-toggle";
 import { ExternalIcon } from "../icons";
@@ -85,7 +86,7 @@ export function ProductDetail({ slug }: { slug: string }) {
  *  the page, or in the browser by ProductDetail. */
 export function ProductView({ product }: { product: CatalogProductDetail }) {
   useEffect(() => {
-    document.title = `${product.title} · Nexus`;
+    document.title = `${product.title} · Vetra`;
   }, [product.title]);
 
   const options = useMemo(
@@ -166,7 +167,7 @@ export function ProductView({ product }: { product: CatalogProductDetail }) {
                 options={options}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
-                unpricedCount={product.variants.length - options.length}
+                counts={countOptions(product.variants)}
               />
             </div>
 

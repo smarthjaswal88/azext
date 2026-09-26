@@ -24,7 +24,7 @@ export function AddToDemoCart({ variantId, disabled }: { variantId: string | und
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div>
-        <label htmlFor={`${id}-qty`} className="eyebrow">
+        <label htmlFor={`${id}-qty`} className="eyebrow block">
           Quantity
         </label>
         <select

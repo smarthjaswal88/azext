@@ -10,6 +10,7 @@
 import type { CatalogAvailability, CatalogProductDetail, CatalogVariant } from "./catalog-api";
 import { catalogProductTypeLabel } from "./catalog-api";
 import { formatCount, formatPrice } from "./format";
+import { countOptions, optionsPricedText } from "./listing-highlights";
 
 // ---------------------------------------------------------------------------
 // shared helpers
@@ -123,13 +124,16 @@ export function buildInsights(products: CatalogProductDetail[]): Insight[] {
     });
   }
 
-  const options = bestOf(products, (p) => purchasableVariants(p).length);
+  const options = bestOf(products, (p) => countOptions(p.variants).priced);
   if (options) {
     insights.push({
       key: "most_options",
       label: "Most options",
       slugs: slugs(options.winners),
-      detail: `${options.best} priced options to choose from.`,
+      detail:
+        options.winners.length === 1
+          ? `${optionsPricedText(countOptions(options.winners[0].variants))}.`
+          : `${options.best} options priced each.`,
     });
   }
 
@@ -245,7 +249,7 @@ export function buildOverviewRows(products: CatalogProductDetail[]): ComparisonR
     rowFrom("Availability", products.map((p) => AVAILABILITY_LABELS[p.availability])),
     rowFrom("Brand", products.map((p) => p.brand)),
     rowFrom("Type", products.map((p) => catalogProductTypeLabel(p.productType))),
-    rowFrom("Priced options", products.map((p) => String(purchasableVariants(p).length))),
+    rowFrom("Options", products.map((p) => optionsPricedText(countOptions(p.variants)))),
   ];
 }
 

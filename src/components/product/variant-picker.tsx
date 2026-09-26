@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CatalogVariant } from "@/lib/catalog-api";
 import { formatPrice } from "@/lib/format";
+import { optionsPricedText, type OptionCounts } from "@/lib/listing-highlights";
 
 export function variantLabel(variant: CatalogVariant): string {
   return variant.label ?? (Object.values(variant.options).filter(Boolean).join(" · ") || "Standard option");
@@ -12,19 +13,23 @@ const INITIAL_VISIBLE = 12;
 
 /**
  * Only purchasable options are offered — those with a listed USD price that
- * are not out of stock. The caller passes exactly those.
+ * are not out of stock. The caller passes exactly those, and the listing's
+ * option counts, so the options that cannot be chosen are explained: an
+ * option without a price is never called out of stock.
  */
 export function VariantPicker({
   options,
   selectedId,
   onSelect,
-  unpricedCount,
+  counts,
 }: {
   options: CatalogVariant[];
   selectedId: string | undefined;
   onSelect: (id: string) => void;
-  unpricedCount: number;
+  counts: OptionCounts;
 }) {
+  const unpriced = counts.total - counts.priced;
+  const outOfStock = counts.priced - counts.purchasable;
   const [showAll, setShowAll] = useState(false);
   const selectedIndex = options.findIndex((v) => v.id === selectedId);
   const visible =
@@ -35,7 +40,7 @@ export function VariantPicker({
   return (
     <fieldset>
       <legend className="eyebrow">
-        Option{options.length === 1 ? "" : "s"} · {options.length} with a listed price
+        Options · <span className="normal-case tracking-normal">{optionsPricedText(counts)}</span>
       </legend>
       {options.length === 0 ? (
         <p className="mt-2 text-sm text-fg-muted">
@@ -62,10 +67,16 @@ export function VariantPicker({
           )}
         </div>
       )}
-      {unpricedCount > 0 && (
+      {unpriced > 0 && (
         <p className="mt-2 text-xs text-fg-subtle">
-          {unpricedCount} more option{unpricedCount === 1 ? " is" : "s are"} listed without a price or
-          out of stock, and can&apos;t be selected.
+          {unpriced} {unpriced === 1 ? "option is" : "options are"} listed without a price and
+          can&apos;t be selected.
+        </p>
+      )}
+      {outOfStock > 0 && (
+        <p className="mt-1 text-xs text-fg-subtle">
+          {outOfStock} priced {outOfStock === 1 ? "option is" : "options are"} out of stock and
+          can&apos;t be selected.
         </p>
       )}
     </fieldset>

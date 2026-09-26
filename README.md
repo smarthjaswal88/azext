@@ -1,6 +1,8 @@
-# Nexus
+# Vetra
 
-Nexus is an independent product discovery and decision platform. People discover products,
+**Compare real product data. Decide with confidence.**
+
+Vetra is an independent product discovery and decision platform. People discover products,
 compare up to three side by side, can ask an optional AI **Decision Assistant** how the options
 fit what they need, and can try a **demo** order flow.
 
@@ -370,9 +372,9 @@ scripts/                     cart check, order-flow check, import operator comma
 
 ## Legacy code
 
-Kept so that no existing route breaks, and not used by the Nexus interface:
+Kept so that no existing route breaks, and not used by the Vetra interface:
 
-- **`/api/compare/summary`** serves the retired static demo catalog. Nexus reads the live catalog
+- **`/api/compare/summary`** serves the retired static demo catalog. Vetra reads the live catalog
   through `/api/catalog/*` instead. Its data — `src/server/catalog.ts`, `src/server/demo-data.ts`,
   `src/lib/product.ts`, `src/lib/comparison-group.ts`, the static parts of `src/lib/types.ts`,
   `public/images/` and `scripts/generate-product-images.py` — is read by nothing else, and can be
