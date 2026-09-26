@@ -1,6 +1,7 @@
 /**
  * Turns a browser-supplied list of variant ids and quantities into priced
- * lines and totals, entirely from the server catalog.
+ * lines and totals, entirely from the server catalog — the Supabase catalog
+ * tables, read through src/server/catalog-db.ts.
  *
  * The rule this module exists to enforce: nothing about money, availability or
  * product identity is ever taken from the request body. The request contributes
@@ -10,20 +11,11 @@
  */
 
 import { clampQuantity, type LineIssue, type PricedCart, type PricedLine } from "@/lib/cart";
-import { imagesForColor } from "@/lib/product";
-import type { Product, Variant } from "@/lib/types";
-import { getVariantById } from "./catalog";
+import { getVariantsForPricing } from "./catalog-db";
 
 /** Free delivery on the demo store. Kept explicit so the total is never just
  *  the subtotal by accident. */
 const SHIPPING_CENTS = 0;
-
-function optionsLabel(product: Product, variant: Variant): string {
-  return product.optionAxes
-    .map((axis) => axis.values.find((v) => v.id === variant.options[axis.key])?.label)
-    .filter(Boolean)
-    .join(" · ");
-}
 
 export interface RequestedItem {
   variantId: unknown;
@@ -75,8 +67,11 @@ export async function priceCart(requested: RequestedItem[]): Promise<PricedCart>
     merged.set(item.variantId, (merged.get(item.variantId) ?? 0) + contribution);
   }
 
+  // One query for every line; ids that are not catalog variants are absent.
+  const catalog = await getVariantsForPricing([...merged.keys()]);
+
   for (const [variantId, rawQuantity] of merged) {
-    const found = await getVariantById(variantId);
+    const found = catalog.get(variantId.toLowerCase());
     if (!found) {
       issues.push({
         variantId,
@@ -95,29 +90,33 @@ export async function priceCart(requested: RequestedItem[]): Promise<PricedCart>
       });
     }
 
-    const { product, variant } = found;
-    if (!variant.available) {
+    if (!found.available) {
       issues.push({
         variantId,
         reason: "unavailable",
-        detail: "This option is out of stock and is not included in the total.",
+        detail:
+          found.priceCents === null
+            ? "This option has no listed price, so it cannot be ordered and is not included in the total."
+            : "This option is out of stock and is not included in the total.",
       });
     }
 
-    const image = imagesForColor(product, variant.options.color)[0];
+    // An option without a listed price contributes nothing: it is shown as
+    // unavailable and excluded from every total below.
+    const unitPriceCents = found.priceCents ?? 0;
     lines.push({
       variantId,
-      productSlug: product.slug,
-      title: product.title,
-      brand: product.brand,
-      optionsLabel: optionsLabel(product, variant),
-      imageSrc: image.src,
-      imageAlt: image.alt,
-      unitPriceCents: variant.priceCents,
-      listPriceCents: variant.listPriceCents,
+      productSlug: found.productSlug,
+      title: found.title,
+      brand: found.brand,
+      optionsLabel: found.optionsLabel,
+      imageSrc: found.imageSrc,
+      imageAlt: found.imageAlt,
+      unitPriceCents,
+      listPriceCents: found.listPriceCents,
       quantity,
-      lineTotalCents: variant.priceCents * quantity,
-      available: variant.available,
+      lineTotalCents: unitPriceCents * quantity,
+      available: found.available,
     });
   }
 

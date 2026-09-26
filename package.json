@@ -12,7 +12,11 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:cart": "node scripts/check-cart-store.mjs",
-    "verify:orders": "node scripts/verify-order-flow.mjs"
+    "verify:orders": "node scripts/verify-order-flow.mjs",
+    "catalog:fields": "node scripts/catalog-import.mjs fields",
+    "catalog:preview": "node scripts/catalog-import.mjs preview",
+    "catalog:import": "node scripts/catalog-import.mjs start",
+    "catalog:resume": "node scripts/catalog-import.mjs resume"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

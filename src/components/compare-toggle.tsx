@@ -1,140 +1,76 @@
 "use client";
 
 import { useState } from "react";
-import { useCompareEntries, useCompareStore } from "@/lib/compare-store";
-import { MAX_COMPARE } from "@/lib/compare";
-import {
-  comparisonGroupDescription,
-  comparisonGroupLabel,
-  type ComparisonGroup,
-} from "@/lib/comparison-group";
+import { catalogCategoryLabel } from "@/lib/catalog-api";
+import { MAX_COMPARE, useCompareItems, useCompareStore, type CompareItem } from "@/lib/compare-selection";
 import { CheckIcon, CompareIcon } from "./icons";
 
 /**
- * "Add to compare" for a product card or a product page.
- *
- * Kept deliberately separate from the product link and from the purchase
- * buttons: it is a checkbox-like control, not a way to buy or to navigate, and
- * on cards it is rendered outside the anchor so it is not a nested interactive
- * element.
- *
- * A comparison-group clash is never resolved silently. The shopper is asked and
- * can decline — clearing three considered choices because someone clicked the
- * wrong thing would be worse than an extra click.
+ * Adds a product to the comparison, or removes it. Products are compared
+ * within one category; adding from another asks first, and the shopper can
+ * keep what they have.
  */
-export function CompareToggle({
-  slug,
-  group,
-  groupSize,
-  variant = "card",
-}: {
-  slug: string;
-  group: ComparisonGroup;
-  /** How many products exist in this group, including this one. */
-  groupSize: number;
-  variant?: "card" | "detail";
-}) {
-  const entries = useCompareEntries();
+export function CompareToggle({ item, block = false }: { item: CompareItem; block?: boolean }) {
+  const items = useCompareItems();
   const add = useCompareStore((s) => s.add);
   const remove = useCompareStore((s) => s.remove);
   const replaceWith = useCompareStore((s) => s.replaceWith);
+  const [notice, setNotice] = useState<string>();
+  const [clash, setClash] = useState<string>();
 
-  const [message, setMessage] = useState<string | undefined>();
-  const [clash, setClash] = useState<{ current: ComparisonGroup } | undefined>();
+  const ready = items !== undefined;
+  const selected = items?.some((i) => i.slug === item.slug) ?? false;
 
-  const ready = entries !== undefined;
-  const selected = entries?.some((e) => e.slug === slug) ?? false;
-  // Comparison needs two columns. A group holding only this product can never
-  // get there, so say so instead of offering a control that leads nowhere.
-  const alone = groupSize < 2;
-
-  function onToggle() {
-    setMessage(undefined);
+  function toggle() {
+    setNotice(undefined);
     setClash(undefined);
-
     if (selected) {
-      remove(slug);
+      remove(item.slug);
       return;
     }
-    const result = add(slug, group);
-    if (result.status === "full") {
-      setMessage(`You can compare ${MAX_COMPARE} products at once. Remove one to add another.`);
-    } else if (result.status === "group_mismatch") {
-      setClash({ current: result.current });
-    }
-  }
-
-  const isDetail = variant === "detail";
-
-  if (alone) {
-    return (
-      <p
-        className={`${isDetail ? "mt-3" : "mt-2"} rounded-md border border-border-subtle bg-surface-muted px-2 py-1.5 text-xs leading-snug text-ink-muted`}
-      >
-        Nothing to compare this with yet — {comparisonGroupDescription(group)} are only compared
-        against each other, and this is the only one in the catalog.
-      </p>
-    );
+    const result = add(item);
+    if (result.status === "full") setNotice(`You can compare up to ${MAX_COMPARE} products. Remove one first.`);
+    if (result.status === "category_mismatch") setClash(result.current);
   }
 
   return (
-    <div className={isDetail ? "mt-3" : "mt-2"}>
+    <div className={block ? "w-full" : undefined}>
       <button
         type="button"
-        onClick={onToggle}
+        onClick={toggle}
         disabled={!ready}
         aria-pressed={selected}
-        className={
-          isDetail
-            ? `flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-60 ${
-                selected
-                  ? "border-accent-ring bg-surface-muted"
-                  : "border-border-strong bg-surface hover:bg-surface-muted"
-              }`
-            : `flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition disabled:opacity-60 ${
-                selected
-                  ? "border-accent-ring bg-surface-muted"
-                  : "border-border-subtle bg-surface text-ink-muted hover:border-border-strong hover:text-ink"
-              }`
-        }
+        className={`btn btn-sm ${block ? "btn-block" : ""} ${selected ? "btn-secondary border-accent/70 text-accent-strong" : "btn-secondary"}`}
       >
-        {selected ? <CheckIcon size={isDetail ? 16 : 13} /> : <CompareIcon size={isDetail ? 17 : 13} />}
-        {selected ? "In comparison" : "Add to compare"}
+        {selected ? <CheckIcon size={15} /> : <CompareIcon size={15} />}
+        {selected ? "In comparison" : "Compare"}
       </button>
 
-      {message && (
-        <p role="status" className="mt-1.5 text-xs text-ink-muted">
-          {message}
+      {notice && (
+        <p role="status" className="mt-2 text-xs text-fg-muted">
+          {notice}
         </p>
       )}
 
       {clash && (
-        <div
-          role="alertdialog"
-          aria-label="Switch comparison group"
-          className="mt-2 rounded-md border border-border-strong bg-surface-muted p-2.5"
-        >
-          <p className="text-xs leading-snug">
-            Your comparison currently holds {comparisonGroupDescription(clash.current)}. Products
-            are only compared within one group, so adding this means starting again.
+        <div role="alertdialog" aria-label="Start a new comparison" className="glass-strong mt-2 p-3 text-left">
+          <p className="text-xs leading-relaxed text-fg-muted">
+            Your comparison holds {catalogCategoryLabel(clash).toLowerCase()}. Products are compared
+            within one category, so adding this starts a new comparison.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => {
-                replaceWith(slug, group);
+                replaceWith(item);
                 setClash(undefined);
               }}
-              className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-ink hover:bg-accent-hover"
+              className="btn btn-primary btn-sm"
             >
-              Compare {comparisonGroupDescription(group)} instead
+              Start new comparison
             </button>
-            <button
-              type="button"
-              onClick={() => setClash(undefined)}
-              className="rounded-full border border-border-strong bg-surface px-3 py-1 text-xs font-medium hover:bg-surface-muted"
-            >
-              Keep my {comparisonGroupLabel(clash.current).toLowerCase()} selection
+            <button type="button" onClick={() => setClash(undefined)} className="btn btn-ghost btn-sm">
+              Keep current
             </button>
           </div>
         </div>

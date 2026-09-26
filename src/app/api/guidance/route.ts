@@ -1,7 +1,10 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import {
   MAX_GUIDANCE_PRODUCTS,
-  MAX_PREFERENCE_CHARS,
+  MAX_NEED_CHARS,
+  MIN_NEED_CHARS,
+  type GuidanceErrorCode,
   type GuidanceResult,
 } from "@/lib/guidance";
 import {
@@ -13,224 +16,160 @@ import {
   visitorHash,
   writeCache,
 } from "@/server/ai/budget";
-import {
-  assembleResult,
-  buildUserPayload,
-  parseBudgetCents,
-  resolveColumn,
-  SYSTEM_PROMPT,
-  requestGuidanceCompletion,
-  validateModelOutput,
-  type GuidanceColumn,
-} from "@/server/ai/guidance";
+import { buildGuidanceContext, modelPayload } from "@/server/ai/context";
+import { requestGuidanceCompletion } from "@/server/ai/deepseek";
+import { assembleResult, PROMPT_VERSION, SYSTEM_PROMPT, validateModelOutput } from "@/server/ai/guidance";
 import { costMicros, DEEPSEEK_MODEL, reservationMicros } from "@/server/ai/pricing";
-import { sharedComparisonGroup } from "@/lib/comparison-group";
-import { CATALOG_VERSION, getProductsBySlugs } from "@/server/catalog";
+import type { CatalogProductDetail } from "@/lib/catalog-api";
+import { CatalogReadError, getCatalogProductsByIdentifiers } from "@/server/catalog-db";
 
 /** Refuses anything larger outright rather than parsing it. */
 const MAX_BODY_BYTES = 8 * 1024;
+const NO_STORE = { "cache-control": "no-store" };
 
-interface RequestedItem {
-  slug: string;
-  colorId?: string;
-  sizeId?: string;
+function fail(status: number, error: GuidanceErrorCode, message: string, retryable: boolean) {
+  return NextResponse.json({ error, message, retryable }, { status, headers: NO_STORE });
 }
 
-function parseBody(raw: unknown):
-  | { items: RequestedItem[]; preferences: string }
-  | undefined {
+/** Live requests are possible only when every gate passes. A malformed
+ *  Supabase URL makes the client constructor throw; that is "unavailable". */
+function aiAvailable(): boolean {
+  try {
+    return readAiAvailability().available;
+  } catch {
+    return false;
+  }
+}
+
+function parseBody(raw: unknown): { need: string; products: string[] } | undefined {
   if (typeof raw !== "object" || raw === null) return undefined;
   const body = raw as Record<string, unknown>;
 
-  if (!Array.isArray(body.items) || body.items.length === 0) return undefined;
-  if (body.items.length > MAX_GUIDANCE_PRODUCTS) return undefined;
+  if (typeof body.need !== "string") return undefined;
+  const need = body.need.replace(/\p{Cc}/gu, " ").replace(/\s+/g, " ").trim();
+  if (need.length < MIN_NEED_CHARS || need.length > MAX_NEED_CHARS) return undefined;
 
-  const items: RequestedItem[] = [];
-  for (const entry of body.items) {
-    if (typeof entry !== "object" || entry === null) return undefined;
-    const item = entry as Record<string, unknown>;
-    if (typeof item.slug !== "string" || item.slug.length === 0 || item.slug.length > 120) {
-      return undefined;
-    }
-    items.push({
-      slug: item.slug,
-      colorId: typeof item.colorId === "string" ? item.colorId.slice(0, 60) : undefined,
-      sizeId: typeof item.sizeId === "string" ? item.sizeId.slice(0, 60) : undefined,
-    });
+  if (!Array.isArray(body.products) || body.products.length === 0) return undefined;
+  if (body.products.length > MAX_GUIDANCE_PRODUCTS) return undefined;
+  const products: string[] = [];
+  for (const entry of body.products) {
+    if (typeof entry !== "string" || entry.length === 0 || entry.length > 120) return undefined;
+    if (!products.includes(entry)) products.push(entry);
   }
+  return { need, products };
+}
 
-  const preferencesRaw = body.preferences;
-  if (preferencesRaw !== undefined && typeof preferencesRaw !== "string") return undefined;
-  const preferences = (preferencesRaw ?? "").trim().slice(0, MAX_PREFERENCE_CHARS);
-
-  return { items, preferences };
+/** Whether the assistant can make live requests here. A boolean only: which
+ *  requirement is missing is deployment detail and stays in the server. */
+export async function GET() {
+  return NextResponse.json({ available: aiAvailable() }, { headers: NO_STORE });
 }
 
 /**
- * Produces comparison guidance. Called only when the shopper presses
- * "Help me choose" — never on load, on typing, or on a variant change.
+ * Compares live catalog products against the shopper's stated need. Called
+ * only when the shopper presses the button — never on load or while typing.
  *
- * Product facts are loaded from the catalog by id. Nothing the browser sends
- * about a price, a specification or a review is trusted or even read.
+ * Product facts are loaded from Supabase by slug or id. Nothing the browser
+ * sends about a price, a specification or a rating is trusted or even read.
  */
 export async function POST(request: Request) {
-  const availability = readAiAvailability();
-  if (!availability.available) {
-    // The reason is a coarse code, never configuration detail.
-    return NextResponse.json(
-      {
-        error: "ai_disabled",
-        message: "Guidance is unavailable right now.",
-        retryable: false,
-      },
-      { status: 503 },
-    );
+  // Gate 1, before anything else: no work at all happens while live requests
+  // are off, so nothing downstream can reach the provider.
+  if (!aiAvailable()) {
+    return fail(503, "ai_disabled", "The decision assistant is switched off in this deployment.", false);
   }
 
   const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) {
-    return NextResponse.json(
-      { error: "invalid_request", message: "That request was too large.", retryable: false },
-      { status: 413 },
-    );
-  }
+  if (text.length > MAX_BODY_BYTES) return fail(413, "invalid_request", "That request was too large.", false);
 
-  let parsedJson: unknown;
+  let json: unknown;
   try {
-    parsedJson = JSON.parse(text);
+    json = JSON.parse(text);
   } catch {
-    return NextResponse.json(
-      { error: "invalid_request", message: "Malformed request.", retryable: false },
-      { status: 400 },
-    );
+    return fail(400, "invalid_request", "Malformed request.", false);
   }
-
-  const parsed = parseBody(parsedJson);
+  const parsed = parseBody(json);
   if (!parsed) {
-    return NextResponse.json(
-      { error: "invalid_request", message: "Malformed request.", retryable: false },
-      { status: 400 },
+    return fail(
+      400,
+      "invalid_request",
+      `Describe what matters in ${MIN_NEED_CHARS}–${MAX_NEED_CHARS} characters, for 1 to ${MAX_GUIDANCE_PRODUCTS} products.`,
+      false,
     );
   }
 
-  // Everything below comes from the catalog, keyed by the ids above.
-  const products = await getProductsBySlugs(parsed.items.map((i) => i.slug));
-  if (products.length < 2) {
-    return NextResponse.json(
-      {
-        error: "invalid_request",
-        message: "At least two known products are needed.",
-        retryable: false,
-      },
-      { status: 400 },
-    );
+  // Everything below comes from the live catalog, keyed by the ids above.
+  let products: CatalogProductDetail[];
+  try {
+    products = await getCatalogProductsByIdentifiers(parsed.products);
+  } catch (cause) {
+    if (cause instanceof CatalogReadError) {
+      return fail(503, "catalog_unavailable", "The catalog could not be read. You can try again.", true);
+    }
+    throw cause;
   }
-  // Refused rather than trimmed. The comparison page trims, because a URL can
-  // be typed by hand and should still render something. A paid request is
-  // different: a mixed set means the caller is not the UI, and quietly
-  // answering a question about a subset would spend money on something nobody
-  // asked for.
-  if (!sharedComparisonGroup(products)) {
-    return NextResponse.json(
-      {
-        error: "invalid_request",
-        message: "Products can only be compared within one group.",
-        retryable: false,
-      },
-      { status: 400 },
-    );
+  if (products.length !== parsed.products.length) {
+    return fail(400, "unknown_product", "One of the selected products is not in the catalog.", false);
+  }
+  // Refused rather than trimmed: a mixed set means the caller is not the UI,
+  // and answering about a subset would spend money on a question nobody asked.
+  if (new Set(products.map((p) => p.category)).size > 1) {
+    return fail(400, "invalid_request", "Products can only be compared within one category.", false);
   }
 
-  const columns: GuidanceColumn[] = products.map((product) => {
-    const requested = parsed.items.find((i) => i.slug === product.slug);
-    return resolveColumn(product, requested?.colorId, requested?.sizeId);
-  });
+  const context = buildGuidanceContext(products, parsed.need);
+  const payload = modelPayload(context);
 
-  const budgetCents = parsed.preferences ? parseBudgetCents(parsed.preferences) : undefined;
+  // The fingerprint covers the exact evidence sent, the prompt version, the
+  // model and the normalised need: a re-import that changes any listing, or a
+  // prompt change, is a different question and is never answered from cache.
+  const evidenceHash = createHash("sha256").update(payload).digest("hex");
   const cacheKey = buildCacheKey({
     model: DEEPSEEK_MODEL,
-    catalogVersion: CATALOG_VERSION,
-    items: columns.map((c) => ({ slug: c.product.slug, variantId: c.variant?.id })),
-    preferences: parsed.preferences,
+    catalogVersion: `${PROMPT_VERSION}:${evidenceHash}`,
+    items: products.map((p) => ({ slug: p.slug })),
+    preferences: parsed.need,
   });
 
-  // A repeat of an identical question costs nothing.
+  // A repeat of an identical question costs nothing. Cached output is
+  // re-validated against today's catalog, and confidence recomputed.
   const cachedRaw = await readCache(cacheKey);
   if (cachedRaw) {
-    const revalidated = validateModelOutput(cachedRaw, columns, Boolean(parsed.preferences));
+    const revalidated = validateModelOutput(cachedRaw, context);
     if (revalidated) {
-      const result: GuidanceResult = assembleResult(
-        revalidated,
-        columns,
-        budgetCents,
-        cacheKey,
-        true,
-      );
-      return NextResponse.json(result);
+      const result: GuidanceResult = assembleResult(revalidated, context, cacheKey, true);
+      return NextResponse.json(result, { headers: NO_STORE });
     }
   }
 
-  const userPayload = buildUserPayload(columns, parsed.preferences, budgetCents);
-  const estimate = reservationMicros(SYSTEM_PROMPT + userPayload);
-
+  const estimate = reservationMicros(SYSTEM_PROMPT + payload);
   const begun = await beginRequest(visitorHash(request), DEEPSEEK_MODEL, estimate, cacheKey);
   if (begun.status === "budget_exhausted") {
-    return NextResponse.json(
-      {
-        error: "budget_exhausted",
-        message: "The guidance budget for this demo has been used up.",
-        retryable: false,
-      },
-      { status: 429 },
-    );
+    return fail(429, "budget_exhausted", "The decision assistant's budget for this demo has been used up.", false);
   }
   if (begun.status === "rate_limited") {
-    return NextResponse.json(
-      {
-        error: "rate_limited",
-        message: `Too many guidance requests. Try again later (${begun.scope} limit).`,
-        retryable: true,
-      },
-      { status: 429 },
-    );
+    return fail(429, "rate_limited", `Too many requests. Try again later (${begun.scope} limit).`, true);
   }
   if (begun.status === "duplicate_in_flight") {
-    // An identical question is already being paid for. The cache only helps
-    // once an answer exists; without this check two simultaneous misses would
-    // both call the provider and both be billed.
-    return NextResponse.json(
-      {
-        error: "duplicate_in_flight",
-        message:
-          "The same comparison is already being looked at. Give it a moment and try again.",
-        retryable: true,
-      },
-      { status: 409 },
-    );
+    // An identical question is already being paid for; without this check two
+    // simultaneous cache misses would both call the provider and both bill.
+    return fail(409, "duplicate_in_flight", "The same question is already being answered. Try again in a moment.", true);
   }
   if (begun.status !== "ok") {
-    return NextResponse.json(
-      { error: "ai_disabled", message: "Guidance is unavailable right now.", retryable: false },
-      { status: 503 },
-    );
+    return fail(503, "ai_disabled", "The decision assistant is unavailable right now.", false);
   }
 
-  const completion = await requestGuidanceCompletion(SYSTEM_PROMPT, userPayload);
+  const completion = await requestGuidanceCompletion(SYSTEM_PROMPT, payload);
 
   if (completion.status === "timeout") {
-    // We stopped waiting; DeepSeek may well have finished and billed. The full
-    // reservation stands rather than being released on an assumption.
+    // We stopped waiting; the provider may well have finished and billed. The
+    // full reservation stands rather than being released on an assumption.
     await settleRequest(begun.requestId, "settled", estimate, undefined, undefined, "timeout");
-    return NextResponse.json(
-      { error: "timeout", message: "That took too long. You can try again.", retryable: true },
-      { status: 504 },
-    );
+    return fail(504, "timeout", "That took too long. You can try again.", true);
   }
 
   if (completion.status === "failed") {
-    // Only a request that never left this process is treated as free. Anything
-    // that may have reached DeepSeek keeps its reservation, because assuming a
-    // failure was free is how a budget stops being a budget.
+    // Only a request that never left this process is treated as free.
     const neverSent = completion.billing === "not_sent";
     await settleRequest(
       begun.requestId,
@@ -240,20 +179,10 @@ export async function POST(request: Request) {
       undefined,
       completion.detail,
     );
-    return NextResponse.json(
-      {
-        error: "upstream_failed",
-        message: "Guidance could not be generated. You can try again.",
-        retryable: true,
-      },
-      { status: 502 },
-    );
+    return fail(502, "upstream_failed", "The recommendation could not be generated. You can try again.", true);
   }
 
-  const actual = costMicros(
-    completion.usage.promptTokens ?? 0,
-    completion.usage.completionTokens ?? 0,
-  );
+  const actual = costMicros(completion.usage.promptTokens ?? 0, completion.usage.completionTokens ?? 0);
 
   let modelJson: unknown;
   try {
@@ -262,7 +191,7 @@ export async function POST(request: Request) {
     modelJson = undefined;
   }
 
-  const validated = validateModelOutput(modelJson, columns, Boolean(parsed.preferences));
+  const validated = validateModelOutput(modelJson, context);
   if (!validated) {
     await settleRequest(
       begun.requestId,
@@ -272,14 +201,7 @@ export async function POST(request: Request) {
       completion.usage.completionTokens,
       "invalid_output",
     );
-    return NextResponse.json(
-      {
-        error: "invalid_model_output",
-        message: "The guidance came back in an unusable form. You can try again.",
-        retryable: true,
-      },
-      { status: 502 },
-    );
+    return fail(502, "invalid_model_output", "The answer came back in an unusable form. You can try again.", true);
   }
 
   await settleRequest(
@@ -292,18 +214,8 @@ export async function POST(request: Request) {
   );
 
   // Only validated output is cached, so a bad generation is never replayed.
-  await writeCache(cacheKey, DEEPSEEK_MODEL, {
-    products: validated.products,
-    suggestion: validated.suggestion,
-    differences: validated.differences,
-  });
+  await writeCache(cacheKey, DEEPSEEK_MODEL, validated);
 
-  const result: GuidanceResult = assembleResult(
-    validated,
-    columns,
-    budgetCents,
-    cacheKey,
-    false,
-  );
-  return NextResponse.json(result);
+  const result: GuidanceResult = assembleResult(validated, context, cacheKey, false);
+  return NextResponse.json(result, { headers: NO_STORE });
 }

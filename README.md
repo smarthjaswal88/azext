@@ -1,138 +1,114 @@
-# Shop
+# Nexus
 
-A shopping storefront with an optional AI product comparison feature.
+Nexus is an independent product discovery and decision platform. People discover products,
+compare up to three side by side, can ask an optional AI **Decision Assistant** how the options
+fit what they need, and can try a **demo** order flow.
 
-Shoppers browse, pick a product and check out directly. Alternatively they can compare up to
-three products using specifications, ratings, review insights and their own stated preferences.
+- **Live data.** Every product fact on the site — price, previous price, rating, rating count,
+  availability, features, specifications and options — comes from a catalog stored in
+  **Supabase**. There is no static or fallback product data in the interface; when the catalog
+  cannot be read, the page says so.
+- **One-time import.** The catalog was populated once from a Bright Data dataset of public
+  retailer listings. Bright Data is used **only** for that operator-run import; the running site
+  never calls it.
+- **Decision Assistant.** Uses only live catalog fields: rating, rating count, pricing,
+  specifications and features. It does **not** use individual customer review text — none was
+  imported. It is **off by default**.
+- **Demo checkout.** The cart and checkout are a demo order flow. **No payment is taken and
+  nothing ships.** Placing an order writes a demo order record and nothing else.
 
-**Built so far:** a demo catalog, search with filtering and sorting, product detail pages, a
-persisted cart, a simulated checkout that records demo orders, optional product comparison, and
-optional DeepSeek-written guidance inside that comparison.
-**Not built:** authentication, real payment.
+Not built: accounts, real payment, fulfilment.
 
-All products, prices, images and reviews are invented for this prototype.
+## Pages
+
+| Route | What it is |
+|---|---|
+| `/` | Discover: hero with live catalog stats, a category explorer, search and filters (category, product type, brand, price, rating, sort) and the product grid |
+| `/product/[slug]` | A product: image, price and previous price, rating and rating count, availability, features, specifications, priced options, compare, "View source" and add to the demo cart. Unknown slugs return HTTP 404 |
+| `/compare` | The decision board for up to three products from one category, with the Decision Assistant |
+| `/cart`, `/checkout` | The demo order flow, priced on the server |
+| `/order/[token]` | A demo order confirmation, reachable only by its token |
+| `/search` | Redirects to `/`, keeping the query, category, price and sort of old links |
 
 ## Requirements
 
 - Node.js 20.9+ (developed on v26)
 - npm (the lockfile is `package-lock.json`; do not switch package manager)
+- A Supabase project with the migrations below applied
 
 ## Local setup
 
 ```bash
 npm install
-cp .env.example .env.local   # optional — the placeholder app runs without it
+cp .env.example .env.local   # then fill in the names listed under "Environment variables"
 npm run dev
 ```
 
-Open http://localhost:3000.
-
-No API credentials are required to run, lint, typecheck or build the app at this stage.
+Open http://localhost:3000. Without Supabase the pages still build and render, but the catalog
+routes answer `503 catalog_unconfigured` and every page shows an honest error state instead of
+products.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `npm run check:cart` | Behavioural checks for the persisted cart store |
-| `npm run verify:orders` | End-to-end order-flow checks; needs a running server and Supabase |
 | `npm run dev` | Development server |
 | `npm run build` | Production build |
 | `npm start` | Serve the production build (run `build` first) |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run check:cart` | Behavioural checks for the persisted cart store |
+| `npm run verify:orders` | End-to-end order-flow checks against a running server and Supabase. **Creates real demo order rows** |
+| `npm run catalog:fields` | Operator only: free schema check against the Bright Data dataset metadata |
+| `npm run catalog:preview` | Operator only: shows the exact import request; sends nothing |
+| `npm run catalog:import` | Operator only: the one-time paid import (needs `--confirm`) |
+| `npm run catalog:resume` | Operator only: finishes an import from its existing snapshot |
 
 ## Environment variables
 
-`.env.example` lists every variable the project will need, split into two groups.
+Names only — values are never written in this repository. `.env.example` lists them with empty
+values; local env files are gitignored.
 
-- **`NEXT_PUBLIC_*`** is inlined into the browser bundle at build time and is readable by
-  anyone who opens the site. Only non-secret configuration belongs here.
-- **Everything else** stays on the server and must only be read from route handlers or server
-  components.
+- **`NEXT_PUBLIC_*`** is inlined into the browser bundle at build time and is readable by anyone.
+  Only non-secret configuration belongs there.
+- **Everything else** is server-only: read in route handlers and server code, never imported into
+  a client component, never logged, never returned in a response.
 
-`DEEPSEEK_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are server-only. They must never be given a
-`NEXT_PUBLIC_` prefix, imported into a client component, logged, or returned in an API response.
-
-Local env files are gitignored; `.env.example` is deliberately not.
+| Variable | Used by | Notes |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | catalog, checkout, AI ledger | The project URL itself, **not** the REST endpoint — a URL ending in `/rest/v1/` makes every catalog query fail with `PGRST125` |
+| `SUPABASE_SECRET_KEY` | everything that reads Supabase | The `sb_secret_…` key. Server-only |
+| `SUPABASE_SERVICE_ROLE_KEY` | as above | Legacy name, still accepted; `SUPABASE_SECRET_KEY` wins if both are set |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `verify:orders` only | Lets the script confirm the anon role can read nothing. The app does not use it |
+| `AI_LIVE_REQUESTS` | Decision Assistant | The master switch. Leave unset; only the exact value `enabled` allows paid requests |
+| `DEEPSEEK_API_KEY` | Decision Assistant | Server-only. Not enough on its own to spend |
+| `AI_VISITOR_SALT` | Decision Assistant rate limits | Salt for the visitor hash |
+| `BRIGHT_DATA_API_TOKEN` | one-time import only | Server-only. **Never set it in a deployment** |
+| `BRIGHT_DATA_DATASET_ID` | one-time import only | The import refuses any dataset other than the authorized one |
+| `CATALOG_IMPORT_SECRET` | one-time import only | Enables the protected import route locally. **Never set it in a deployment** |
+| `CATALOG_IMPORT_ALLOW_PRODUCTION` | one-time import only | Leave unset; the import route is disabled in production builds without it |
+| `CATALOG_IMPORT_BASE_URL`, `VERIFY_BASE_URL` | operator scripts | Optional; default to `http://localhost:3000` |
 
 ## Supabase setup
 
-Demo orders are stored in Supabase. **Without it the app runs and the whole catalog works, but
-checkout is disabled and says so** — nothing is kept in memory as a stand-in, because an order
-that disappeared on the next restart would look like it had worked.
+Apply the migrations in the **SQL Editor**, in order, one whole file per query (the function
+bodies contain semicolons, so never run them statement by statement):
 
-1. Create a Supabase project.
-2. Apply the migrations. **For checkout you need exactly two, in this order:**
+| Migration | Creates | Needed for |
+|---|---|---|
+| `0001_demo_orders.sql` | `orders`, `order_items`, `create_demo_order` | demo checkout |
+| `0002_idempotency_fingerprint.sql` | `request_fingerprint`, `create_demo_order_v2` | demo checkout |
+| `0003_ai_guidance.sql` | `ai_budget`, `ai_usage`, `ai_guidance_cache` and their functions | Decision Assistant |
+| `0004_budget_limit_and_dedup.sql` | a $0.50 spend ceiling and in-flight de-duplication | Decision Assistant |
+| `0005_catalog.sql` | `catalog_products`, `catalog_variants`, `catalog_specifications`, `catalog_sync_runs`, `upsert_catalog_product` | the catalog — required |
 
-   | Order | File | What it creates |
-   |---|---|---|
-   | 1 | `supabase/migrations/0001_demo_orders.sql` | `orders` and `order_items`, RLS enabled with no policies, and `create_demo_order` |
-   | 2 | `supabase/migrations/0002_idempotency_fingerprint.sql` | adds `request_fingerprint` and replaces the function with `create_demo_order_v2` |
+Every table has row-level security on and **no policies**, and table privileges are revoked
+from `anon` and `authenticated`. All reads and writes happen in server code holding the secret
+key. `0005` is wrapped in a transaction and safe to re-run.
 
-   `0002` depends on `0001` — it drops the old function and alters the table `0001` creates — so
-   the order matters. Neither is idempotent in the "run it twice safely" sense for the `drop
-   function` step, though re-running is harmless: `0002` uses `if exists` and `if not exists`
-   throughout.
-
-   **Running them in the Supabase SQL editor**, which needs no local tooling:
-
-   1. Open your project → **SQL Editor** → **New query**.
-   2. Open `supabase/migrations/0001_demo_orders.sql` in this repository, copy the whole file,
-      paste it in, and press **Run**. Expect "Success. No rows returned".
-   3. Open a **new query**, do the same with `0002_idempotency_fingerprint.sql`, and **Run**.
-   4. Confirm with:
-
-      ```sql
-      select table_name from information_schema.tables
-       where table_schema = 'public' order by table_name;
-      -- expect: order_items, orders
-
-      select routine_name from information_schema.routines
-       where routine_schema = 'public' order by routine_name;
-      -- expect: create_demo_order_v2   (create_demo_order is dropped by 0002)
-      ```
-
-   Do not run them one statement at a time — each file is a single migration and the function
-   bodies contain semicolons.
-
-   `0003_ai_guidance.sql` and `0004_budget_limit_and_dedup.sql` are **not needed for checkout**.
-   They set up the AI spend ledger and only matter if you later enable guidance, which is off.
-3. Put these in `.env.local` (or `.env`) — from **Project Settings → API keys**:
-
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=
-   SUPABASE_SECRET_KEY=
-   ```
-
-   `SUPABASE_SECRET_KEY` takes the newer `sb_secret_…` key, which replaces the legacy
-   `service_role` JWT. The old variable name `SUPABASE_SERVICE_ROLE_KEY` is still read as a
-   fallback, so an existing deployment keeps working; `SUPABASE_SECRET_KEY` wins if both are set.
-   Either name accepts either key format.
-
-   **Do not put the publishable key here.** `sb_publishable_…` replaces `anon` and does *not*
-   bypass RLS. Nothing would fail loudly — but because the orders tables carry no policies, every
-   read would come back empty and every write would be refused, which reads as "the order
-   vanished" rather than "the wrong key". The server checks the prefix and refuses to start with
-   one, logging the reason without logging the key.
-
-4. Restart the dev server. Checkout enables itself once the URL and a secret key are both set.
-
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` is listed in `.env.example` for later steps. Order storage does
-not use it.
-
-### Verifying it works
-
-With the server running and Supabase configured:
-
-```bash
-npm run verify:orders
-```
-
-It checks order creation and persisted totals, confirmation retrieval after a refresh,
-concurrent submissions with one key, key reuse with a different payload, unknown tokens, and —
-if `NEXT_PUBLIC_SUPABASE_ANON_KEY` is set — that the anon role can read nothing. It exits 2 when
-Supabase is not configured, so "blocked" is never mistaken for "passed", and it never prints a
-confirmation token in full.
+**Do not use the publishable key** (`sb_publishable_…`) where the secret key belongs. It is a
+valid key, so nothing fails loudly — but it does not bypass RLS, so every read comes back empty.
+The server checks the prefix and refuses it, logging the reason without logging the key.
 
 ### Idempotency, precisely
 
@@ -144,379 +120,272 @@ A checkout attempt generates one key and reuses it across retries.
 | Same key, different request | **409, and no token is returned.** |
 | New key | A new order. |
 
-The middle row is why orders store a fingerprint of the request the key was first used for.
-Returning the earlier order there would tell the caller "done" and show them a purchase they
-did not just make.
+Orders store a fingerprint of the request each key was first used for, built from the
+server-recomputed lines and totals. Returning the earlier order in the middle case would show a
+purchase the caller did not just make.
 
 ### How orders stay private
 
-Row-level security is enabled on both tables and **no policy is ever created**, so the `anon`
-and `authenticated` roles can read nothing at all. Every read and write happens in server code
-holding the service-role key, which bypasses RLS and never reaches the browser.
+A guest reaches their own order through a 43-character confirmation token (32 random bytes) in
+the URL. With RLS denying the anon role outright, no one can query the tables, so no one can
+enumerate or guess their way to another order.
 
-A guest reaches their own order through a confirmation token of 32 random bytes in the URL.
-They cannot query the table, so they cannot enumerate or guess their way to anyone else's order.
+`npm run verify:orders` checks creation and persisted totals, confirmation after a refresh,
+concurrent submissions with one key, key reuse with a different payload and unknown tokens. It
+takes one clothing and one headphone option from the live catalog API, so expected totals come
+from the same source the server prices from. It exits 2 when Supabase is not configured and never
+prints a token in full.
 
-## Deploying to Vercel
+## The live catalog
 
-Zero-config: it is a standard Next.js App Router project, so Vercel's framework preset handles
-the build. There is no `vercel.json` and none is needed. Two small files exist purely for
-deployment and change no behaviour:
+**Tables.** `catalog_products` holds one row per product (price in integer cents, previous
+price, rating, rating count, availability, image URL, source URL, category, product type and a
+full-text search vector). `catalog_variants` holds its options — exactly one default option per
+product, plus the source's variations; an option without a listed price has a null price and is
+never purchasable. `catalog_specifications` holds specification rows and feature bullets.
+`catalog_sync_runs` records each import as counts and codes only.
 
-- `.vercelignore` — keeps `recon/`, `.agent-logs/`, `CAPTURE-TEST.md`, `scripts/` and
-  `supabase/` out of the upload. None is imported at build or runtime, and `recon/` alone is
-  10 MB of screenshots. Upload drops from about 10.8 MB to 0.8 MB.
-- `engines.node` in `package.json` — Next 16 needs Node 20.9+. Vercel reads this to pick the
-  runtime major.
+**API routes.** Supabase only, no static fallback. Server-side reads use the secret key; nothing
+reaches the browser except the shaped JSON below.
 
-Product images are SVGs served straight from `/public`; Next skips the image optimizer for SVG
-entirely (`/_next/image` appears zero times in the build output), so no image configuration and
-no optimization spend.
+| Route | Returns |
+|---|---|
+| `GET /api/catalog/products` | A page of product summaries and the total. Parameters: `q`, `category`, `brand`, `minPrice` and `maxPrice` (integer cents), `sort` (`featured` = most rated, `price-asc`, `price-desc`, `rating-desc`), `limit` (1–48, default 24), `offset` |
+| `GET /api/catalog/products/[slug]` | One product with its options, specifications and feature bullets |
+| `GET /api/catalog/categories` | Categories with product counts, product types, brands and price range |
 
-### Environment variables to set in Vercel
+Malformed parameters are a 400 listing the reasons. Successful responses carry a short shared
+cache (`s-maxage=60`).
 
-Project → **Settings → Environment Variables**. Set values there, never in the repository.
+**Search** is Postgres full-text search (English stemming, web-search syntax) over title, brand
+and description; every term must match. Category and brand match exactly. The API has no
+product-type or rating filter, so the discovery page loads the full matching set and applies
+those two in the browser.
 
-| Variable | Needed for | Environments | Notes |
-|---|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | checkout | Production (+ Preview) | Inlined at build time, so it must exist before the build runs |
-| `SUPABASE_SECRET_KEY` | checkout | Production (+ Preview) | The `sb_secret_…` key. Server-only. `SUPABASE_SERVICE_ROLE_KEY` is still accepted as a fallback name |
-| `AI_VISITOR_SALT` | AI rate limiting | Production | Only read when AI is enabled. Harmless to set early |
-| `DEEPSEEK_API_KEY` | AI guidance | Production | Not enough on its own to spend — see below |
-| `AI_LIVE_REQUESTS` | AI guidance | **leave unset** | The master switch |
+## One-time catalog import (Bright Data)
 
-**Leave `AI_LIVE_REQUESTS` unset.** With it absent the guidance route refuses every request
-before any provider call, and the comparison page renders "AI guidance is currently
-unavailable" with no button. Browsing, search, cart and checkout are unaffected. Setting it to
-exactly `enabled` is the single action that turns paid requests on, and it needs a redeploy or
-a restart to take effect.
+The catalog was filled by a single operator-run collection from Bright Data's "Amazon products —
+discover by keyword" dataset: four keywords (wireless headphones, over ear headphones, cotton t
+shirt, linen shirt), at most 6 records each and 24 in total. The import run on 2026-09-26
+delivered 21 records and imported 17 products. **Bright Data is not called by the running site**;
+nothing in the interface or the catalog API depends on it.
 
-The Supabase project the deployment points at must already have migrations `0001` and `0002`
-applied, or checkout will fail at the point of writing an order.
-
-### Things to weigh before making it public
-
-- **There is no authentication and no rate limit on order creation.** Anyone who finds the URL
-  can write demo order rows. Fine for a review link; worth a limit before wider exposure.
-- The header no longer carries a demo disclosure. The footer and the reviews section still do.
-- Orders are reachable only with their 43-character confirmation token, and RLS denies the anon
-  role outright, so one visitor cannot see another's order.
-
-## Architecture
-
-Next.js App Router with TypeScript and Tailwind CSS v4.
-
-```
-src/app/
-  layout.tsx            shell, footer, metadata
-  globals.css           Tailwind entry point and theme tokens
-  page.tsx              homepage
-  not-found.tsx         404
-  search/page.tsx       results, filters, sorting
-  product/[slug]/       product detail
-  cart/page.tsx         cart
-  compare/page.tsx      optional comparison, up to three products
-  checkout/page.tsx     simulated checkout
-  order/[token]/        order confirmation, readable after a refresh
-  api/cart/summary/     prices a cart from the catalog
-  api/compare/summary/  thumbnails and names for the comparison tray
-  api/orders/           places a demo order
-src/components/         presentational pieces used by more than one page
-src/lib/                types and pure helpers, safe on client or server
-src/server/
-  catalog.ts            the only way the app reads catalog data
-  demo-data.ts          the demo catalog itself
-  pricing.ts            turns variant ids and quantities into money
-  orders.ts             demo order persistence
-  supabase.ts           server-only Supabase access
-supabase/migrations/    SQL for the orders tables
-scripts/
-  generate-product-images.py   generates everything in public/images/
+```bash
+npm run dev                                                  # terminal 1
+npm run catalog:fields                                       # free schema check, no collection
+npm run catalog:preview                                      # prints the exact request; sends nothing
+npm run catalog:import -- --confirm IMPORT_MAX_24_PRODUCTS   # the one paid request, then imports
+npm run catalog:resume -- <run-id> [--reimport]              # finish from the existing snapshot
 ```
 
-`src/server/catalog.ts` is the seam. Every function is async and specific to what the
-storefront asks for. Moving to Supabase means rewriting those function bodies; no page changes.
-It is deliberately not a generic repository or query builder.
+Safeguards:
 
-Backend work will use **Next.js route handlers** inside `src/app/`. There is no separate backend
-service and none is planned. No placeholder API routes exist yet — they will be added when
-something actually calls them.
+- The import route `/api/admin/catalog/import` answers 404 unless `CATALOG_IMPORT_SECRET` is set
+  (32+ characters), and 404 in production builds unless `CATALOG_IMPORT_ALLOW_PRODUCTION=true` too.
+- `catalog:import` prints the exact endpoint, payload, limits and assumptions first and sends
+  nothing without `--confirm`. The server re-reads the dataset's metadata (free) and refuses to
+  send the paid request if any requested field is missing from the schema.
+- Each run is recorded before Bright Data is contacted. The database refuses a run asking for more
+  than 6 per keyword or 24 in total, and refuses a second concurrent run. After a run Bright Data
+  accepted — or may have — another start must name that run with
+  `--authorize-additional-paid-run <run-id>`.
+- Only 21 confirmed fields are requested (`custom_output_fields`), so review text, reviewer data
+  and seller data are never delivered. The normalizer (`src/server/brightdata/normalize.ts`) never
+  fills a missing value and skips any record without an ASIN, a product URL, a title or a USD
+  price. Products are classified from their title and category fields; anything ambiguous or
+  off-topic is skipped with a reason. Image URLs are stored only for the source's https image
+  CDN; no image is downloaded.
 
-Shared components, product types and server utilities will get their own directories under
-`src/` at the point where there is real code to put in them, rather than being created empty now.
+## Demo checkout
 
-## Design decisions
+- Browser storage holds only variant ids and quantities. `/api/cart/summary` and `/api/orders`
+  price every line on the server from `catalog_variants` (`src/server/pricing.ts`); nothing the
+  browser says about money is read.
+- Only options with a listed USD price that are not out of stock can be selected or ordered. An
+  unpriced option is shown as unavailable and excluded from every total — it never borrows the
+  parent's price.
+- Delivery details are fixed demo values; nothing about the shopper is collected. There is no
+  payment provider, no card form and no charge, and nothing is shipped. Every step of the flow
+  says so.
+- The cart is cleared only after an order is confirmed, and only of what was ordered.
 
-Recon (see `recon/notes.md`) left real questions open. Rather than block, each was decided and
-recorded here. These are our choices, not observations of any other retailer.
+## Decision Assistant
 
-| Decision | Reasoning |
+On the compare page a shopper writes what matters to them ("comfortable headphones for the gym,
+under $100"), and the assistant weighs the selected products — up to three, from one category —
+against that need. The comparison works the same whether it is used, loading, failed or switched
+off.
+
+**What it is given.** Per product, loaded from Supabase on the server by slug or id
+(`src/server/ai/context.ts`): title, brand, category, product type, price, previous price, rating,
+rating count, availability, a budget check computed in code, up to 8 features, up to 24
+specifications and up to 8 priced options. It is **not** given review text (none exists), images,
+URLs or seller data.
+
+**What it returns.** Structured JSON: a recommended product or "no clear recommendation", a short
+reason, supporting evidence tied to specific listing fields, tradeoffs, parts of the need no field
+addresses, a confidence level and a fixed limitation statement: *"Recommendation based on
+available catalog details, rating, and rating count. Individual customer review text was not
+imported."*
+
+### Keeping it honest
+
+- The need and all listing text travel as JSON the system prompt identifies as **data, not
+  instructions**.
+- Evidence must cite a field reference (`price`, `ratingCount`, `feature:3`, `spec:Item Weight`,
+  `option:2`, …). References to fields the listing does not have are dropped, and **the value
+  shown beside each note is looked up from the catalog on the server** — a displayed value can
+  never be one the model invented. What that does not establish: whether the field bears on the
+  need, or whether the note reads it fairly. That is why the value is always shown with the note.
+- Budgets are parsed from the need and compared in integer cents in code; the model is handed
+  booleans.
+- Output failing validation is reported as an error; canned text is never shown as an answer.
+
+### Confidence is computed, not asked for
+
+Fixed rules in `src/server/ai/confidence.ts`, with thresholds in `src/lib/guidance.ts` so the
+panel's explanation cannot drift from the code. The model is told not to produce a confidence
+level and none it gives is read.
+
+| Level | When |
 |---|---|
-| Clothing varies by **colour and size**; headphones by **colour** only | Our design decision. No clothing product page was ever captured, so there was nothing to copy. |
-| Variants, not products, carry **price and availability** | Recon did evidence per-variant pricing, and it is the only model that survives a size surcharge. |
-| Money is **integer cents**, formatted once in `src/lib/format.ts` | Floats do not survive arithmetic on prices. |
-| **Rating count and written-review count are separate** | Most people who rate never write anything. Collapsing them overstates written feedback. |
-| Rating averages are **derived from the histogram** | The summary cannot contradict itself. |
-| Reviews belong to a **product** and optionally name a purchased variant | Matches what recon showed: reviews pool across variants while keeping attribution. |
-| Search, filter, sort and variant selection all live in **URL parameters** | Results are shareable, the back button works, and no client JavaScript is needed. |
-| **No comparison or AI controls anywhere** | Those features do not exist yet. |
-| The cart stores **only variant ids and quantities** | Prices are resolved server-side on every render. Nothing in localStorage can change what is charged. |
-| Cart and quantity changes are **client state, not URL navigation** | Catalog pages keep state in the URL because it should be shareable. A cart edit is neither shareable nor a navigation. |
-| Hydration uses **`useSyncExternalStore` with an undefined server snapshot** | A `hydrated` flag set from persist's rehydrate callback cannot work: with synchronous storage that callback runs while the store is still being created, so the flag never flips. |
-| Buy now **never touches the cart** | It checks out one selection. Merging it into the cart, or clearing the cart, would both lose work the shopper did not ask to lose. |
-| Order idempotency is enforced **in the database**, on a client-generated key | A unique constraint is the only thing that actually holds under concurrent double clicks. The key is stable across retries so a retry after a timeout resolves to the first order. |
-| A key is **bound to a request fingerprint** | Without it, reusing a key for different contents silently returns an unrelated order. The fingerprint is built from server-recomputed lines and totals, so a client cannot forge a match. |
-| Configuration problems are **server diagnostics, not UI** | A shopper cannot act on a missing environment variable, and a response body is readable by anyone. The page says checkout is unavailable; the server log names the variables. |
-| The cart is cleared **only after** an order is confirmed, and only of what was bought | Clearing first loses the cart if the write fails. |
-| The popularity sort is called **"Most rated"** | It orders by number of ratings. Calling it "Featured" implied a merchandised ordering we do not have. |
-| A product matches a price filter when **any variant** falls in range | The shopper can select that variant. |
-| Specs reading "None" are **excluded from search text** | Otherwise searching "noise cancelling" returns every pair of headphones, including those that say "None". |
+| High | at least 3 distinct listing fields cited in support, at least 1,000 ratings, and no part of the need reported as unaddressed |
+| Medium | at least 1 supporting field and at least 50 ratings, but not enough for High |
+| Low | no recommendation; a thin listing (fewer than 3 specifications and fewer than 3 features); products too similar to separate (same type, prices within 5%, ratings within 0.1); a price above the stated budget; or too little evidence |
 
-### Comparison
-
-Optional throughout: every product can be bought from its own page without ever opening it.
-
-**Comparison groups**, which decide what may be compared with what:
-
-| Group | Holds | Products |
-|---|---|---|
-| `personal-audio` | headphones and earbuds | 6 |
-| `shirts-and-tops` | shirts and tees | 3 |
-| `knitwear-and-layers` | sweaters and fleeces | 2 |
-| `trousers` | trousers | 1 |
-
-The group is a field on the product (`Product.comparisonGroup`), not something
-inferred from the category at the point of use, so there is one definition. Note that
-`trousers` currently holds a single product: the selection control explains that rather than
-offering a comparison that cannot happen.
-
-| Decision | Reasoning |
-|---|---|
-| Up to **three products, one comparison group** | Groups are finer than categories, because "clothing" is not a comparable set — a chino and a t-shirt share almost no specification rows, so the table would be mostly "Not provided". |
-| The group rule is enforced in **four places** | The selection control, the comparison page's URL parsing, the tray summary endpoint and the AI endpoint. Any one of them alone can be bypassed. |
-| A mixed URL **asks**, it does not pick | Quietly dropping half of a link and showing the rest as though it were the request is worse than asking. The page lists what the link contains and offers each group as a choice. The AI endpoint refuses outright, since a mixed set there means the caller is not the UI. |
-| A group holding **one product** says so | The control explains that there is nothing to compare against rather than offering a button that can never reach two columns. Trousers is such a group today. |
-| A group clash **asks** rather than clearing | Silently discarding three considered choices because someone clicked the wrong thing is worse than one extra click. |
-| The tray stores **only slugs** | Titles, images and prices are resolved server-side, so nothing in browser storage can go stale or be edited. |
-| Selections live in the **URL** on the comparison page | A comparison can be bookmarked, shared and reopened. Invalid or unknown ids are dropped with a notice rather than trusted. |
-| Clothing needs an **explicit size** before Add to cart | The size axis is never defaulted. Guessing a size on a shopper's behalf produces a wrong order. |
-| Missing specifications read **"Not provided"** | Never a value borrowed from the neighbouring column, and never invented. |
-| Review excerpts state **how many records actually exist** | The catalog holds three or four real review records per product while the aggregate figure is in the hundreds. The page says so rather than implying the aggregate was read. |
-
-Two further row groups — "Review confidence" and "Match for your needs" — are planned for the
-DeepSeek step. They are deliberately **not** stubbed out: an empty panel promising analysis that
-does not exist would be worse than no panel.
-
-## AI guidance
-
-Optional, inside the comparison page only. The panel sits above the table, where a shopper
-decides whether they want help; nothing below it depends on using it. The table renders,
-variants change and items reach the cart whether guidance is requested, still loading, failed,
-or switched off entirely.
-
-### Model, checked against the documentation
-
-Verified against DeepSeek's own docs without calling the inference API:
-
-| Checked | Source |
-|---|---|
-| Model IDs and prices | <https://api-docs.deepseek.com/quick_start/pricing> |
-| Request and response fields | <https://api-docs.deepseek.com/api/create-chat-completion> |
-| JSON output requirements | <https://api-docs.deepseek.com/guides/json_mode> |
-| Thinking mode | <https://api-docs.deepseek.com/guides/reasoning_model> |
-| Token counting | <https://api-docs.deepseek.com/quick_start/token_usage> |
-
-**`deepseek-flash`**, the cheaper of the two published models. Requests use
-`response_format: { type: "json_object" }`, `max_tokens: 900`, `temperature: 0.2`, no
-streaming, `thinking: { type: "disabled" }`, and a 25-second timeout.
-
-Two corrections came out of that check:
-
-- An earlier note here called `deepseek-flash` "the non-reasoning model". **That was wrong.**
-  The reasoning guide shows `deepseek-flash` used with `thinking: {"type": "enabled"}`, so it
-  supports thinking and simply does not use it unless asked. Disabling it is therefore a real
-  cost control — thinking tokens bill as output — not a formality.
-- The JSON output guide requires the literal word "json" in the prompt *and* an example of the
-  shape. The example was there; the lowercase word was not, and has been added. The same guide
-  warns the API "may occasionally return empty content", which is now handled as a billed
-  failure, as is a `finish_reason` of `length` (truncated, unparseable JSON).
-
-Prices quoted from the pricing page, per 1M tokens: `deepseek-flash` input cache-miss $0.15
-off-peak / $0.30 peak, cache-hit $0.003 / $0.006, output $0.60 / $1.20. Peak is 01:00–04:00 and
-06:00–10:00 UTC, Monday to Friday.
+A supporting field counts only if it exists in that product's listing. The only model output that
+affects the level is the list of unaddressed needs, and it can only lower confidence.
 
 ### Spend controls
 
-Paid requests are off by default and stay off until **all four** of these hold:
+Paid requests stay off until **all** of these hold: `AI_LIVE_REQUESTS` equals `enabled`,
+`DEEPSEEK_API_KEY` is set, Supabase is configured, and `ai_budget` has a row (migrations
+`0003`/`0004` leave it at **$0.50**). On top of that:
 
-| Gate | Why |
-|---|---|
-| `AI_LIVE_REQUESTS=enabled` | An explicit switch, so no deployment starts spending by accident. |
-| `DEEPSEEK_API_KEY` set | Obvious. |
-| Supabase configured | The budget ledger and rate limits live there. |
-| A row in `ai_budget` | Migrations `0003`/`0004` leave one at **$0.50**. |
+- **Called only when "Ask the decision assistant" is pressed** — never on load or while typing.
+  The panel asks `GET /api/guidance` for a boolean only and keeps the button disabled when live
+  requests are off.
+- **Two gates on the switch.** The route refuses before doing any work, and the DeepSeek client
+  (`src/server/ai/deepseek.ts`) re-checks it and refuses to send.
+- **One attempt, no retries**, a 25-second timeout, `max_tokens` 900, thinking disabled, JSON
+  output (`deepseek-flash`, checked against DeepSeek's published documentation).
+- **Capped requests**: 1–3 products from one category, a need of 3–280 characters, bodies over
+  8 KB rejected. Three products make a prompt of roughly 12,000 characters, reserved at about
+  $0.003.
+- **Cached** under a fingerprint of the model, prompt version, a SHA-256 of the exact evidence
+  sent, the products and the normalised need. An identical question is never paid for twice, and
+  a re-import that changes any listing is a new question.
+- **Concurrent duplicates refused** inside the same SQL function that reserves budget, so the
+  check and the reservation cannot interleave.
+- **Per-visitor rate limits**: 6 per hour, 20 per day, keyed by a salted hash; no IP or user agent
+  is stored.
 
-On top of that:
+**How the budget works, and what it does not guarantee.** Cost is tracked in integer
+micro-dollars. Each call first reserves the bounded input plus the full output ceiling at peak,
+cache-miss prices, then settles to the reported usage. Failures keep their reservation unless the
+request never left the process. It bounds spend; it is not a financial guarantee — it relies on
+published prices and reported token counts, and only knows about requests made through this
+route. Inspect it with `select public.ai_budget_status();` and change the ceiling with
+`select public.ai_set_budget_limit(<micros>);`.
 
-- **Called only on "Help me choose".** Never on page load, never while typing, never after a
-  variant change.
-- **One attempt, no retries.** Retrying a paid endpoint automatically doubles the bill for a
-  request the shopper made once. Retry is a button the shopper presses.
-- **Request shape is capped**: at most 3 products, their specifications, and at most 4 review
-  excerpts each; preference text is cut at 280 characters; the whole body is rejected above 8 KB.
-- **Results are cached** in Supabase by model, catalog version, products, chosen variants and
-  normalised preferences. An identical question is never paid for twice.
-- **Concurrent duplicates are refused.** A cache only helps once an answer exists — two
-  identical questions asked at the same moment would both miss it and both be billed. The
-  in-flight check lives inside the same SQL function that reserves budget, so the check and the
-  reservation cannot interleave. The second caller gets a retryable 409. A reservation stops
-  blocking after two minutes, so a crashed request cannot wedge a cache key.
-- **Per-visitor rate limits**: 6 per hour, 20 per day, keyed by a salted hash of IP and user
-  agent. Neither the IP nor the user agent is stored.
+### Turning it on
 
-### How the budget actually works, and what it does not guarantee
+Off by default. In the host's environment settings (on Vercel: Project → Settings → Environment
+Variables) set `AI_LIVE_REQUESTS` to `enabled` and a server-only `DEEPSEEK_API_KEY`, make sure
+migrations `0003` and `0004` are applied, and redeploy. While it is off, the compare page says so,
+explains these steps, and makes no request.
 
-The ceiling is **$0.50**, held in `ai_budget.limit_micros`. Nothing in this schema resets,
-replenishes or tops it up — there is no scheduled job and no code path that raises it. It moves
-only when a human runs:
+## Deploying to Vercel
 
-```sql
-select public.ai_set_budget_limit(2000000);  -- $2.00
-select public.ai_budget_status();            -- what is committed so far
+A standard Next.js App Router project: Vercel's framework preset handles the build and there is
+no `vercel.json`. `engines.node` in `package.json` pins Node 20.9+, and `.vercelignore` keeps
+`recon/`, `.agent-logs/`, `CAPTURE-TEST.md`, `scripts/` and `supabase/` out of the upload.
+
+Product images load directly from the source's image CDN through `next/image` with `unoptimized`
+and `referrerPolicy="no-referrer"`: nothing is proxied, resized or stored, and no image
+optimization is used.
+
+**Set** `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` (both are needed before the build
+runs, since the first is inlined). Set `AI_VISITOR_SALT` and `DEEPSEEK_API_KEY` only when
+enabling the assistant, and leave `AI_LIVE_REQUESTS` unset until then. **Never set**
+`BRIGHT_DATA_API_TOKEN`, `BRIGHT_DATA_DATASET_ID`, `CATALOG_IMPORT_SECRET` or
+`CATALOG_IMPORT_ALLOW_PRODUCTION` in a deployment. The Supabase project must have migrations
+`0001`, `0002` and `0005` applied (and `0003`/`0004` for the assistant).
+
+### Things to weigh before making it public
+
+- There is no authentication and no rate limit on demo order creation.
+- Product titles, descriptions and images are third-party listing content, and images are loaded
+  from the source's CDN. Whether that is acceptable for a public site is a decision for the owner.
+- Prices and stock are as of the import and may have changed; every product links to its source.
+
+## Architecture
+
+Next.js 16 App Router, TypeScript, Tailwind CSS v4, Supabase, zustand for the two browser stores.
+
+```
+src/app/
+  page.tsx                   Discover
+  product/[slug]/page.tsx    product page (server lookup, 404 for unknown slugs)
+  compare/page.tsx           decision board
+  cart/, checkout/, order/[token]/   demo order flow
+  search/page.tsx            redirect to /
+  api/catalog/               products, products/[slug], categories — the live catalog API
+  api/cart/summary/          prices a cart from the catalog
+  api/orders/                places a demo order
+  api/guidance/              the Decision Assistant (GET availability, POST ask)
+  api/admin/catalog/import/  the protected, operator-only import route
+  api/compare/summary/       LEGACY — see below
+src/components/              shell, product card, meta, image, UI primitives
+  discovery/ product/ compare/   page-specific components
+src/lib/                     client-safe code: API contracts (catalog-api, guidance), the catalog
+                             client and hooks, compare selection and insights, discovery
+                             filters, cart store, formatting
+src/server/
+  catalog-db.ts              every Supabase catalog read
+  pricing.ts, orders.ts      server-side pricing and demo orders
+  supabase.ts                server-only client
+  ai/                        Decision Assistant context, prompt, validation, confidence, spend
+  brightdata/, catalog-import.ts   the one-time import
+supabase/migrations/         0001–0005
+scripts/                     cart check, order-flow check, import operator command
 ```
 
-Migration `0004` lowers the earlier `0003` default from $5.00 to $0.50, and only if the value is
-still that untouched default — an operator who has set their own ceiling keeps it. It does not
-touch `ai_usage`, so every existing spend record is preserved.
+## Design decisions
 
-Cost is tracked in integer micro-dollars. Before a call the route reserves an estimate covering
-**the bounded input it is about to send plus the full `max_tokens` output ceiling** — never an
-expected output length — priced at DeepSeek's **peak, cache-miss** rates. The input estimate uses
-1/3 token per character against the documented "1 English character ≈ 0.3 token", then a further
-1.3× safety factor. An off-peak call therefore costs roughly half what was set aside.
-
-The reservation is recorded in `ai_usage` as `reserved`, then replaced with the real cost from
-the token usage the API reports. Committed spend is settled actuals plus outstanding
-reservations, so concurrent requests cannot both slip under the ceiling.
-
-**Failures keep their reservation.** The only outcome treated as free is a request that never
-left the process (no API key). A timeout, a non-2xx, a dropped connection, an empty completion
-or truncated output all keep the full reservation, because a request that may have reached
-DeepSeek may have been billed, and assuming otherwise is how a budget stops being one.
-
-Honest limitations — this bounds spend, it is not a hard financial guarantee:
-
-- Costs are computed from **published prices and reported token counts**. If either is wrong or
-  changes, the ledger is wrong.
-- A call can be billed by DeepSeek while the settle write fails (a crash between the two). The
-  reservation then stands, which errs towards under-spending, but the recorded figure is an
-  estimate rather than the invoice.
-- Uncertain failures are recorded as **billed at the reserved estimate**, which deliberately
-  over-counts rather than under-counts.
-- The in-flight duplicate check covers concurrent requests through this route. It does not
-  coordinate with anything else using the same key.
-- It only knows about requests made through this route. Spend from anywhere else on the same
-  key is invisible to it.
-- **A request count is not a dollar cap.** The cap is on estimated dollars; request limits are a
-  separate, coarser guard.
-
-Check the ledger directly with `select public.ai_budget_status();`, and change the ceiling by
-updating `ai_budget.limit_micros`.
-
-### Review confidence is not the model's opinion
-
-Two assessments appear per product, and they are produced differently on purpose.
-
-**Review confidence** is computed on the server by fixed rules in
-`src/server/ai/confidence.ts`. It measures *how far the available review evidence supports any
-conclusion* — not quality, and not whether a shopper will be happy. The rules:
-
-| Review texts analysed | Level |
+| Decision | Reasoning |
 |---|---|
-| 0–1 | Insufficient evidence |
-| 2–3 | Low |
-| 4–7 | Medium |
-| 8+ | High |
+| Live catalog only; a failed read is shown as a failure | Stand-in data would look like real listings. |
+| Money is integer cents, formatted in `src/lib/format.ts` | Floats do not survive arithmetic on prices. |
+| The cart stores only variant ids and quantities | Every price is resolved on the server, so nothing in browser storage can change what is charged. |
+| Only priced, in-stock options are selectable | An option without a price cannot be ordered honestly, and its price is never borrowed from another. |
+| Products are compared within one category; adding another asks first | A t-shirt and headphones share no meaningful rows, and silently discarding a shortlist is worse than one extra click. |
+| Comparison insights, signals, differences and tradeoffs are computed from listing data | They say what they are computed from, report ties as ties, and are never AI output. |
+| Discovery filters live in the URL | Results are shareable and the back button steps through changes. |
+| Unknown product URLs are a real 404 | The page looks the product up on the server before rendering. |
+| Order idempotency is enforced in the database and bound to a request fingerprint | A unique constraint is what holds under concurrent double clicks; the fingerprint stops a reused key returning an unrelated order. |
+| Configuration problems are server diagnostics | Visitors cannot act on a missing variable, and response bodies are public. |
+| Hydration uses `useSyncExternalStore` with an undefined server snapshot | Server and client markup match, and a returning visitor is never shown an empty cart. |
+| A description that only repeats the feature bullets is not shown twice | Presentation only; stored text is never edited. |
 
-then one downgrade (never below Low) when the analysed ratings span 3 stars or more, because
-sharply split opinion supports less.
+## Legacy code
 
-This demo catalog holds at most **four** review texts per product, so **High is unreachable
-here**. That is deliberate. The aggregate "412 written reviews" figures in the demo data are
-just numbers — those individual reviews do not exist, and nothing has read them. The panel says
-so, and the count of texts actually analysed is shown next to every assessment.
+Kept so that no existing route breaks, and not used by the Nexus interface:
 
-The model is told explicitly not to produce a confidence rating, and its output is not consulted
-for one.
+- **`/api/compare/summary`** serves the retired static demo catalog. Nexus reads the live catalog
+  through `/api/catalog/*` instead. Its data — `src/server/catalog.ts`, `src/server/demo-data.ts`,
+  `src/lib/product.ts`, `src/lib/comparison-group.ts`, the static parts of `src/lib/types.ts`,
+  `public/images/` and `scripts/generate-product-images.py` — is read by nothing else, and can be
+  deleted together with the route.
+- **`recon/`** holds research notes and screenshots from the project's early exploration phase.
+  The app does not use it, and it is excluded from deployments.
 
-**Match for your needs** is the model's, and is where suitability, tradeoffs and unknowns live.
-With preferences it offers a suggested choice, including "No clear match". Without preferences
-it describes differences and picks no winner.
+## Known limitations
 
-### Keeping the model honest
-
-- Review text and preference text go into a JSON payload the system prompt identifies as **data,
-  not instructions**.
-- Every review-based claim must cite review ids, and output is validated against the ids
-  actually sent — a citation we did not supply is dropped.
-
-  **What that check does not establish.** A valid id proves the referenced review exists and was
-  in evidence. It does **not** prove the sentence beside it is supported by that review's
-  content: nothing here reads the review and tests the claim against it, and a model can cite a
-  real review and still describe it wrongly. The check is a floor against invented sources. The
-  cited reviews are rendered in full next to the claim precisely because the reader, not the
-  validator, is what closes that gap.
-- Budget comparisons are computed in integer cents in `src/server/ai/guidance.ts` and handed to
-  the model as booleans. It is told not to do arithmetic on prices.
-- If no clothing size is chosen, the price is marked provisional everywhere it appears and no
-  confirmed variant price is claimed.
-- Output failing validation is reported as an error. Canned text is never presented as a live
-  response.
-
-### Search behaviour, stated precisely
-
-Terms are split on whitespace and AND-ed; each must appear in the product's title, brand,
-summary, category or specifications, matched at a **word boundary with prefix matching**. So
-"headphone" finds "headphones", and "open" finds "open-back" — but it also finds "opening",
-which is the cost of prefix matching. There is no stemming, phrase matching, typo tolerance or
-relevance ranking. It is a catalog filter, not a search engine.
-
-### Still open
-
-Checkout was never observed during recon, and no clothing product page was captured. Neither
-blocks this step. Both are recorded in `recon/notes.md` §5.2b against the step that needs them.
-
-### Planned sequence
-
-| Step | Scope | Status |
-|---|---|---|
-| 1 | Scaffold: App Router, TypeScript, Tailwind, ESLint | done |
-| 2a | Catalog, search, product details | done |
-| 2b | Cart and simulated checkout | done |
-| 3 | Optional comparison for up to three products | done |
-| 4 | Review-confidence and personal-suitability explanations via DeepSeek | not started |
-
-Comparison is a core feature of the submission, but it stays optional in the shopper journey:
-browse → product → checkout must always work without it.
-
-Review confidence (how strongly the review evidence supports a conclusion) and personal
-suitability (how well a product fits this shopper's stated preferences) are two separate
-assessments and are kept structurally separate throughout.
-
-## Demo data and images
-
-Everything in `src/server/demo-data.ts` is invented: brands are fictional and were chosen not to
-resemble real ones, and the reviews are written content, not customer feedback. The storefront
-says so on every page — a banner in the header and a notice above the reviews.
-
-Every image in `public/images/` is an SVG illustration generated by
-`scripts/generate-product-images.py`. Nothing was downloaded or derived from a third-party
-image, so the set carries no attribution or licence obligation. They are drawings, not
-photographs — `public/images/README.md` records what was checked before settling on that, and
-what would need to change to use photography.
-
-## Exploration notes
-
-`recon/` holds the Amazon shopper-experience reference material — redacted screenshots and
-written observations — along with an explicit record of which flows were never observed. Open
-product questions are routed there to the implementation step that needs them.
+- The Decision Assistant is built and tested with live requests off; its first live answer has
+  not yet been observed.
+- If Supabase cannot be read, a product page falls back to loading in the browser and shows an
+  error with a retry (HTTP 200) rather than a 404.
+- Product type and rating filters run in the browser because the catalog API does not take them.
+- Imported data carries source quirks: near-duplicate listings of one product in different colours
+  or packs, and occasional leftover retailer page text in descriptions.

@@ -1,74 +1,379 @@
 @import "tailwindcss";
 
 /**
- * Explicit light theme.
+ * Nexus — a dark product-intelligence interface.
  *
- * Shopping surfaces do not follow the operating system theme: a storefront
- * that flips to dark changes how every product photograph and colour swatch
- * reads, and a shopper judging a garment's colour should not be shown it
- * through a dark filter. `color-scheme: light` also keeps form controls light.
+ * Graphite surfaces, soft glass panels, one electric accent that runs from
+ * blue to violet, and high-contrast type. Retailer photographs are shot on
+ * white, so they sit on a light "stage" rather than straight on graphite.
+ *
+ * Contrast (WCAG 2.x, measured against graphite-900 #0d1016):
+ *   fg        #f3f5fa   ~17:1
+ *   fg-muted  #a9b1c6   ~8.5:1
+ *   fg-subtle #8089a0   ~5.4:1  (AA for body text; never smaller than 12px)
+ *   accent    #6f8dff   ~6.1:1  and accent-ink on accent ~6:1
+ *   violet    #a88bfa   ~6.9:1
+ *   positive  #4ade80, caution #fbbf24, negative #f87171 all above 6:1
  */
+
 :root {
-  color-scheme: light;
-
-  --page: #eaeded;
-  --surface: #ffffff;
-  /* Slightly off-white so white garments stay visible against it. */
-  --surface-image: #f6f7f7;
-  --surface-muted: #f3f4f5;
-  --ink: #0f1111;
-  --ink-muted: #565959;
-  --ink-link: #007185;
-  --border: #d5d9d9;
-  --border-strong: #adb1b8;
-
-  --header: #131a22;
-  --header-strip: #232f3e;
-
-  /* Purchase controls. #0f1111 on #ffd814 is roughly 15:1 — far above AA. */
-  --accent: #ffd814;
-  --accent-hover: #f5c400;
-  --accent-ink: #0f1111;
-  --accent-ring: #c89411;
-
-  --star: #de7921;
-  --price-sale: #b12704;
-  --in-stock: #007600;
+  color-scheme: dark;
+  --focus-ring: #9db3ff;
 }
 
-@theme inline {
-  --color-page: var(--page);
-  --color-surface: var(--surface);
-  --color-surface-image: var(--surface-image);
-  --color-surface-muted: var(--surface-muted);
-  --color-ink: var(--ink);
-  --color-ink-muted: var(--ink-muted);
-  --color-ink-link: var(--ink-link);
-  --color-border-subtle: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-header: var(--header);
-  --color-header-strip: var(--header-strip);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-ink: var(--accent-ink);
-  --color-accent-ring: var(--accent-ring);
-  --color-star: var(--star);
-  --color-sale: var(--price-sale);
-  --color-in-stock: var(--in-stock);
+@theme {
+  --color-void: #06070b;
+  --color-graphite-950: #090b10;
+  --color-graphite-900: #0d1016;
+  --color-graphite-850: #12151d;
+  --color-graphite-800: #181c26;
+  --color-graphite-700: #232937;
+  --color-graphite-600: #2f3647;
+
+  --color-fg: #f3f5fa;
+  --color-fg-muted: #a9b1c6;
+  --color-fg-subtle: #8089a0;
+
+  --color-line: rgb(255 255 255 / 0.08);
+  --color-line-strong: rgb(255 255 255 / 0.16);
+
+  --color-accent: #6f8dff;
+  --color-accent-strong: #9db3ff;
+  --color-violet: #a88bfa;
+  --color-accent-ink: #070a14;
+
+  --color-positive: #4ade80;
+  --color-caution: #fbbf24;
+  --color-negative: #f87171;
+
+  /* Light stage for photographs shot on white. */
+  --color-stage: #f4f6fb;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+html {
+  background: var(--color-graphite-950);
 }
 
 body {
-  background: var(--page);
-  color: var(--ink);
-  font-family:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
+  min-height: 100%;
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(1100px 520px at 12% -8%, rgb(111 141 255 / 0.16), transparent 62%),
+    radial-gradient(900px 480px at 96% -4%, rgb(168 139 250 / 0.13), transparent 60%),
+    var(--color-graphite-950);
+  background-repeat: no-repeat;
 }
 
-/* One focus treatment everywhere, visible on both the navy header and white
-   cards. */
-:where(a, button, select, input, summary):focus-visible {
-  outline: 2px solid var(--accent-ring);
+::selection {
+  background: rgb(111 141 255 / 0.4);
+  color: #ffffff;
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes nexus-shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@layer components {
+  /* ---- layout -------------------------------------------------------- */
+
+  .container-app {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .container-app {
+      padding-inline: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .container-app {
+      padding-inline: 2rem;
+    }
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -4rem;
+    z-index: 60;
+    border-radius: 0.75rem;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    padding: 0.6rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .skip-link:focus {
+    top: 0.75rem;
+  }
+
+  /* ---- surfaces ------------------------------------------------------ */
+
+  .glass {
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.02));
+    border: 1px solid var(--color-line);
+    border-radius: 1.25rem;
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
+  .glass-strong {
+    background: linear-gradient(180deg, rgb(24 28 38 / 0.92), rgb(18 21 29 / 0.92));
+    border: 1px solid var(--color-line-strong);
+    border-radius: 1.25rem;
+    -webkit-backdrop-filter: blur(22px);
+    backdrop-filter: blur(22px);
+  }
+  .glow {
+    box-shadow:
+      0 0 0 1px rgb(111 141 255 / 0.18),
+      0 18px 60px -24px rgb(111 141 255 / 0.45);
+  }
+  .stage {
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(120% 100% at 50% 0%, #ffffff, var(--color-stage));
+    border-radius: 1rem;
+  }
+
+  /* ---- type ---------------------------------------------------------- */
+
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-fg-subtle);
+  }
+  .text-gradient {
+    background: linear-gradient(95deg, #c9d5ff 0%, var(--color-accent) 45%, var(--color-violet) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .link {
+    color: var(--color-accent-strong);
+    text-decoration: underline;
+    text-decoration-color: rgb(157 179 255 / 0.45);
+    text-underline-offset: 3px;
+  }
+  .link:hover {
+    text-decoration-color: currentColor;
+  }
+
+  /* ---- buttons ------------------------------------------------------- */
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.6rem 1.15rem;
+    border: 1px solid transparent;
+    border-radius: 0.85rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    transition:
+      background-color 150ms,
+      border-color 150ms,
+      color 150ms,
+      box-shadow 150ms,
+      opacity 150ms;
+    cursor: pointer;
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: linear-gradient(100deg, var(--color-accent) 0%, var(--color-violet) 100%);
+    color: var(--color-accent-ink);
+    box-shadow: 0 10px 30px -12px rgb(111 141 255 / 0.7);
+  }
+  .btn-primary:not(:disabled):hover {
+    box-shadow: 0 14px 38px -12px rgb(168 139 250 / 0.85);
+  }
+  .btn-secondary {
+    background: rgb(255 255 255 / 0.06);
+    border-color: var(--color-line-strong);
+    color: var(--color-fg);
+  }
+  .btn-secondary:not(:disabled):hover {
+    background: rgb(255 255 255 / 0.1);
+    border-color: rgb(255 255 255 / 0.28);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-fg-muted);
+  }
+  .btn-ghost:not(:disabled):hover {
+    background: rgb(255 255 255 / 0.06);
+    color: var(--color-fg);
+  }
+  .btn-sm {
+    min-height: 2.25rem;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.8125rem;
+    border-radius: 0.7rem;
+  }
+  .btn-block {
+    width: 100%;
+  }
+
+  /* ---- chips, fields, badges ----------------------------------------- */
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.03);
+    color: var(--color-fg-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition:
+      background-color 150ms,
+      border-color 150ms,
+      color 150ms;
+    cursor: pointer;
+  }
+  .chip:hover {
+    color: var(--color-fg);
+    border-color: rgb(255 255 255 / 0.3);
+  }
+  .chip[aria-pressed="true"],
+  .chip[aria-current="true"] {
+    background: rgb(111 141 255 / 0.16);
+    border-color: rgb(111 141 255 / 0.7);
+    color: #ffffff;
+  }
+  .chip:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .chip-count {
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-fg-subtle);
+  }
+
+  .field {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.75rem;
+    background: rgb(9 11 16 / 0.7);
+    border: 1px solid var(--color-line-strong);
+    border-radius: 0.85rem;
+    padding: 0.55rem 0.85rem;
+    color: var(--color-fg);
+    font-size: 0.9rem;
+    transition: border-color 150ms;
+  }
+  .field::placeholder {
+    color: var(--color-fg-subtle);
+  }
+  .field:hover {
+    border-color: rgb(255 255 255 / 0.28);
+  }
+  select.field {
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image: linear-gradient(45deg, transparent 50%, var(--color-fg-muted) 50%),
+      linear-gradient(135deg, var(--color-fg-muted) 50%, transparent 50%);
+    background-position:
+      calc(100% - 1.05rem) 52%,
+      calc(100% - 0.75rem) 52%;
+    background-size:
+      0.3rem 0.3rem,
+      0.3rem 0.3rem;
+    background-repeat: no-repeat;
+  }
+  select.field option {
+    background: var(--color-graphite-850);
+    color: var(--color-fg);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.4;
+    border: 1px solid var(--color-line-strong);
+    color: var(--color-fg-muted);
+    background: rgb(255 255 255 / 0.04);
+  }
+  .badge-accent {
+    border-color: rgb(111 141 255 / 0.45);
+    color: var(--color-accent-strong);
+    background: rgb(111 141 255 / 0.12);
+  }
+  .badge-positive {
+    border-color: rgb(74 222 128 / 0.35);
+    color: var(--color-positive);
+    background: rgb(74 222 128 / 0.1);
+  }
+  .badge-caution {
+    border-color: rgb(251 191 36 / 0.35);
+    color: var(--color-caution);
+    background: rgb(251 191 36 / 0.1);
+  }
+  .badge-negative {
+    border-color: rgb(248 113 113 / 0.35);
+    color: var(--color-negative);
+    background: rgb(248 113 113 / 0.1);
+  }
+
+  /* ---- loading ------------------------------------------------------- */
+
+  .skeleton {
+    border-radius: 0.75rem;
+    background: linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0.04) 0%,
+      rgb(255 255 255 / 0.09) 50%,
+      rgb(255 255 255 / 0.04) 100%
+    );
+    background-size: 200% 100%;
+    animation: nexus-shimmer 1.6s ease-in-out infinite;
+  }
 }

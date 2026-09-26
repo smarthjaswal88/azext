@@ -1,12 +1,14 @@
-/** Inline SVG icons. One consistent set, sized by the `size` prop and inheriting
- *  `currentColor`, so nothing depends on emoji rendering differing per platform. */
+/** Inline SVG icons: one stroke style, sized by `size`, coloured by
+ *  currentColor, decorative unless given a label by the caller. */
+
+import type { ReactNode } from "react";
 
 interface IconProps {
   size?: number;
   className?: string;
 }
 
-export function CartIcon({ size = 22, className }: IconProps) {
+function Svg({ size = 18, className, children, strokeWidth = 1.8 }: IconProps & { children: ReactNode; strokeWidth?: number }) {
   return (
     <svg
       width={size}
@@ -14,168 +16,122 @@ export function CartIcon({ size = 22, className }: IconProps) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.9"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       className={className}
     >
-      <path d="M2.5 3h2.2l2.1 10.4a1.6 1.6 0 0 0 1.6 1.3h8.1a1.6 1.6 0 0 0 1.6-1.25l1.4-6.2H6" />
-      <circle cx="9.5" cy="19.5" r="1.5" />
-      <circle cx="17" cy="19.5" r="1.5" />
+      {children}
     </svg>
   );
 }
 
-export function SearchIcon({ size = 20, className }: IconProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.1"
-      strokeLinecap="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <circle cx="10.5" cy="10.5" r="6.5" />
-      <path d="M15.4 15.4 21 21" />
-    </svg>
-  );
-}
+export const SearchIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m16 16 4.5 4.5" />
+  </Svg>
+);
 
-export function FilterIcon({ size = 18, className }: IconProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <path d="M3 6h18M6 12h12M10 18h4" />
-    </svg>
-  );
-}
+export const CompareIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="4.5" width="7" height="15" rx="2" />
+    <rect x="13.5" y="4.5" width="7" height="15" rx="2" />
+  </Svg>
+);
 
-export function ChevronDownIcon({ size = 16, className }: IconProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
+export const BagIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5.5 8h13l-1 11.5a1.5 1.5 0 0 1-1.5 1.5H8a1.5 1.5 0 0 1-1.5-1.5z" />
+    <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+  </Svg>
+);
 
-export function CheckIcon({ size = 16, className }: IconProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <path d="m4 12.5 5.2 5.2L20 7" />
-    </svg>
-  );
-}
+export const ArrowRightIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4.5 12h15M13.5 6l6 6-6 6" />
+  </Svg>
+);
 
-const STAR_PATH =
-  "M12 2.6l2.9 5.88 6.5.95-4.7 4.58 1.11 6.47L12 17.43 6.19 20.48 7.3 14.01 2.6 9.43l6.5-.95z";
+export const ExternalIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14 4.5h5.5V10M19.5 4.5 11 13" />
+    <path d="M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10" />
+  </Svg>
+);
 
-/** Five stars with a clipped overlay for the fractional part. Decorative — the
- *  numeric value always appears as text beside it. */
-export function StarRow({ value, size = 15 }: { value: number; size?: number }) {
-  const pct = Math.max(0, Math.min(100, (value / 5) * 100));
-  const id = `star-clip-${Math.round(pct * 100)}-${size}`;
+export const CheckIcon = (p: IconProps) => (
+  <Svg {...p} strokeWidth={2.2}>
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </Svg>
+);
+
+export const CloseIcon = (p: IconProps) => (
+  <Svg {...p} strokeWidth={2}>
+    <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+  </Svg>
+);
+
+export const PlusIcon = (p: IconProps) => (
+  <Svg {...p} strokeWidth={2}>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+);
+
+export const SlidersIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+    <circle cx="15" cy="7" r="2" />
+    <circle cx="9" cy="17" r="2" />
+  </Svg>
+);
+
+export const SparkIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 3.5v4M12 16.5v4M3.5 12h4M16.5 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" />
+  </Svg>
+);
+
+export const AlertIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 4 21 19.5H3z" />
+    <path d="M12 10v4.5M12 17.2v.3" />
+  </Svg>
+);
+
+export const InfoIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 11v5M12 8v.3" />
+  </Svg>
+);
+
+export const ImageIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+    <circle cx="9" cy="10" r="1.6" />
+    <path d="m20.5 16-4.5-4.5-7.5 7.5" />
+  </Svg>
+);
+
+/** The Nexus mark: three linked nodes. */
+export function NexusMark({ size = 28 }: { size?: number }) {
   return (
-    <svg
-      width={size * 5}
-      height={size}
-      viewBox="0 0 120 24"
-      aria-hidden="true"
-      className="shrink-0"
-    >
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
       <defs>
-        <clipPath id={id}>
-          <rect x="0" y="0" width={(pct / 100) * 120} height="24" />
-        </clipPath>
+        <linearGradient id="nexus-mark" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#9db3ff" />
+          <stop offset="0.5" stopColor="#6f8dff" />
+          <stop offset="1" stopColor="#a88bfa" />
+        </linearGradient>
       </defs>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <path
-          key={`bg-${i}`}
-          d={STAR_PATH}
-          transform={`translate(${i * 24} 0)`}
-          fill="none"
-          stroke="var(--border-strong)"
-          strokeWidth="1.6"
-        />
-      ))}
-      <g clipPath={`url(#${id})`}>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <path key={`fg-${i}`} d={STAR_PATH} transform={`translate(${i * 24} 0)`} fill="var(--star)" />
-        ))}
-      </g>
-    </svg>
-  );
-}
-
-export function CompareIcon({ size = 18, className }: IconProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <path d="M4 5h6v14H4zM14 5h6v14h-6z" />
-      <path d="M10 12h4" />
-    </svg>
-  );
-}
-
-export function CloseIcon({ size = 16, className }: IconProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <path d="M6 6l12 12M18 6L6 18" />
+      <rect x="1" y="1" width="30" height="30" rx="9" fill="#12151d" stroke="url(#nexus-mark)" strokeWidth="1.5" />
+      <path d="M10 21.5 16 10.5l6 11" fill="none" stroke="url(#nexus-mark)" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M10 21.5h12" fill="none" stroke="url(#nexus-mark)" strokeWidth="1.8" strokeLinecap="round" opacity="0.55" />
+      <circle cx="16" cy="10.5" r="2.4" fill="#9db3ff" />
+      <circle cx="10" cy="21.5" r="2.4" fill="#6f8dff" />
+      <circle cx="22" cy="21.5" r="2.4" fill="#a88bfa" />
     </svg>
   );
 }

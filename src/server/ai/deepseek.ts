@@ -44,6 +44,13 @@ export async function requestGuidanceCompletion(
   systemPrompt: string,
   userPayload: string,
 ): Promise<DeepSeekResult> {
+  // Defence in depth: the route checks this switch before doing anything, and
+  // so does the client itself, so no code path can reach the provider while
+  // live requests are off.
+  if (process.env.AI_LIVE_REQUESTS?.trim() !== "enabled") {
+    return { status: "failed", detail: "live requests disabled", billing: "not_sent" };
+  }
+
   const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
   // Nothing was sent, so nothing can have been charged. This is the only
   // outcome that releases a reservation.

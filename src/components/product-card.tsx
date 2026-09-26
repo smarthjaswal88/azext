@@ -1,93 +1,79 @@
-import Image from "next/image";
 import Link from "next/link";
-import { comparisonGroupOf } from "@/lib/comparison-group";
-import { formatPrice } from "@/lib/format";
-import { fromPriceCents, hasMultiplePrices, imagesForColor } from "@/lib/product";
-import type { Product } from "@/lib/types";
+import { catalogProductTypeLabel, type CatalogProductSummary } from "@/lib/catalog-api";
 import { CompareToggle } from "./compare-toggle";
-import { RatingLine } from "./star-rating";
+import { AvailabilityDot, PriceTag, RatingSummary } from "./product-meta";
+import { RemoteImage } from "./remote-image";
 
-/** Fixed-height regions so a grid of cards lines up: square image area, title
- *  clamped to two lines, then rating and price pinned to the bottom. */
+/**
+ * A live catalog product. The title link stretches over the card, so there is
+ * one link per product; the compare control sits above it as its own button.
+ */
 export function ProductCard({
   product,
-  groupSize,
+  priority = false,
 }: {
-  product: Product;
-  /** Products sharing this product's comparison group. */
-  groupSize: number;
+  product: CatalogProductSummary;
+  /** Load the image eagerly — for the first cards above the fold. */
+  priority?: boolean;
 }) {
-  const firstColor = product.optionAxes.find((a) => a.key === "color")?.values[0];
-  const image = imagesForColor(product, firstColor?.id)[0];
-  const price = fromPriceCents(product);
-  const anyStock = product.variants.some((v) => v.available);
-  const colors = product.optionAxes.find((a) => a.key === "color")?.values ?? [];
-
   return (
-    <article className="group flex h-full flex-col rounded-lg border border-border-subtle bg-surface transition hover:border-border-strong hover:shadow-[0_2px_10px_rgba(15,17,17,0.10)]">
-      <Link href={`/product/${product.slug}`} className="block p-2.5 pb-0">
-        <div className="relative aspect-square overflow-hidden rounded bg-surface-image">
-          <Image
-            src={image.src}
-            alt={image.alt}
-            fill
-            sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 240px"
-            className="object-contain transition-transform duration-200 group-hover:scale-[1.03]"
-          />
+    <article className="glass group relative flex h-full flex-col p-3 transition duration-200 hover:border-line-strong hover:bg-white/6">
+      <RemoteImage
+        src={product.imageUrl}
+        alt={product.title}
+        sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 300px"
+        className="aspect-square"
+        priority={priority}
+      />
+
+      <div className="flex flex-1 flex-col px-1.5 pb-1.5 pt-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className="badge">{catalogProductTypeLabel(product.productType)}</span>
+          <AvailabilityDot availability={product.availability} />
         </div>
-      </Link>
 
-      <div className="flex flex-1 flex-col gap-1 p-3 pt-2.5">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
-          {product.brand}
-        </p>
-
-        <h3 className="line-clamp-2 min-h-[2.5rem] text-sm leading-snug">
-          <Link href={`/product/${product.slug}`} className="hover:text-ink-link hover:underline">
+        {product.brand && <p className="eyebrow mt-3 truncate">{product.brand}</p>}
+        <h3 className="mt-1.5 line-clamp-2 text-[0.95rem] font-medium leading-snug text-fg">
+          <Link
+            href={`/product/${product.slug}`}
+            className="after:absolute after:inset-0 after:rounded-[1.25rem] after:content-[''] focus-visible:outline-none"
+          >
             {product.title}
           </Link>
         </h3>
 
-        <RatingLine
-          average={product.rating.average}
-          ratingCount={product.rating.ratingCount}
-          size={14}
-        />
+        <div className="mt-3">
+          <RatingSummary rating={product.rating} ratingCount={product.ratingCount} size="sm" />
+        </div>
 
-        <div className="mt-auto pt-1.5">
-          <p className="flex items-baseline gap-1">
-            {hasMultiplePrices(product) && (
-              <span className="text-xs text-ink-muted">from</span>
-            )}
-            <span className="text-lg font-semibold tracking-tight">{formatPrice(price)}</span>
-          </p>
-
-          {colors.length > 1 && (
-            <p className="mt-1.5 flex items-center gap-1" aria-label={`${colors.length} colours`}>
-              {colors.map((c) => (
-                <span
-                  key={c.id}
-                  title={c.label}
-                  className="size-3.5 rounded-full border border-border-strong"
-                  style={{ background: c.swatch }}
-                />
-              ))}
-            </p>
-          )}
-
-          {!anyStock && (
-            <p className="mt-1.5 text-xs font-medium text-sale">Currently unavailable</p>
-          )}
-
-          {/* Outside the product link on purpose: a button nested in an anchor
-              is not a valid or predictable control. */}
-          <CompareToggle
-            slug={product.slug}
-            group={comparisonGroupOf(product)}
-            groupSize={groupSize}
-          />
+        <div className="mt-auto pt-4">
+          <PriceTag priceCents={product.priceCents} listPriceCents={product.listPriceCents} />
+          <div className="relative z-10 mt-3">
+            <CompareToggle
+              block
+              item={{
+                slug: product.slug,
+                category: product.category,
+                title: product.title,
+                imageUrl: product.imageUrl,
+              }}
+            />
+          </div>
         </div>
       </div>
     </article>
+  );
+}
+
+export function ProductCardSkeleton() {
+  return (
+    <div className="glass flex flex-col p-3" aria-hidden="true">
+      <span className="skeleton block aspect-square rounded-2xl" />
+      <span className="skeleton mt-4 block h-4 w-24" />
+      <span className="skeleton mt-3 block h-3 w-16" />
+      <span className="skeleton mt-2 block h-4 w-full" />
+      <span className="skeleton mt-1.5 block h-4 w-3/4" />
+      <span className="skeleton mt-6 block h-6 w-20" />
+    </div>
   );
 }

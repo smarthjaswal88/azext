@@ -5,24 +5,19 @@ export default function NotFound() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-16">
-        <h1 className="text-2xl font-semibold">We could not find that page</h1>
-        <p className="mt-2 max-w-prose text-ink-muted">
-          The product may have been renamed, or the address may be mistyped.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href="/search"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:bg-accent-hover"
-          >
-            Browse all products
-          </Link>
-          <Link
-            href="/"
-            className="rounded-md border border-border-subtle px-4 py-2 text-sm font-medium hover:bg-surface-muted"
-          >
-            Go to the homepage
-          </Link>
+      <main id="main" className="container-app flex-1 pb-20 pt-16">
+        <div className="glass mx-auto max-w-xl p-8 text-center">
+          <p className="eyebrow">404</p>
+          <h1 className="mt-3 text-2xl font-semibold text-fg">This page doesn&apos;t exist</h1>
+          <p className="mt-2 text-fg-muted">The address may be mistyped, or the page has moved.</p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link href="/" className="btn btn-primary">
+              Discover products
+            </Link>
+            <Link href="/compare" className="btn btn-secondary">
+              Open comparison
+            </Link>
+          </div>
         </div>
       </main>
     </>

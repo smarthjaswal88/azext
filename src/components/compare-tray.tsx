@@ -1,157 +1,70 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { compareHref, MAX_COMPARE, MIN_COMPARE } from "@/lib/compare";
-import { useCompareEntries, useCompareStore } from "@/lib/compare-store";
-import { CloseIcon } from "./icons";
+import { MAX_COMPARE, MIN_COMPARE, useCompareItems, useCompareStore } from "@/lib/compare-selection";
+import { ArrowRightIcon, CloseIcon } from "./icons";
+import { RemoteImage } from "./remote-image";
 
-interface MiniProduct {
-  slug: string;
-  title: string;
-  brand: string;
-  imageSrc: string;
-  imageAlt: string;
-}
+/** Pages where the tray would duplicate the page or sit over order controls. */
+const HIDDEN_ON = ["/compare", "/cart", "/checkout"];
 
-// The tray only ever holds one group, because the selection control enforces
-// that before anything reaches here.
-
-/**
- * Appears once something is selected and persists across navigation and
- * refresh, because the selection lives in the store rather than in the page.
- *
- * On small screens it is a fixed bar, so a spacer of the same height is left in
- * the flow — without it the bar would sit over the last controls on the page,
- * which on a product page is the buy box.
- */
+/** A floating shortlist, shown while browsing once something is selected. A
+ *  spacer keeps it from covering the end of the page. */
 export function CompareTray() {
   const pathname = usePathname();
-  const entries = useCompareEntries();
+  const items = useCompareItems();
   const remove = useCompareStore((s) => s.remove);
   const clear = useCompareStore((s) => s.clear);
 
-  const [products, setProducts] = useState<MiniProduct[]>([]);
-  const slugs = (entries ?? []).map((e) => e.slug);
-  const key = slugs.join(",");
-
-  useEffect(() => {
-    if (!key) {
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      try {
-        const response = await fetch("/api/compare/summary", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ slugs: key.split(",") }),
-        });
-        if (!response.ok) return;
-        const data = (await response.json()) as { items: MiniProduct[] };
-        if (!cancelled) setProducts(data.items);
-      } catch {
-        // The tray is an aid, not a requirement. If this fails the shopper can
-        // still reach the comparison page from the button below.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [key]);
-
-  // Hidden on the comparison page itself, where it would duplicate the columns.
-  if (!entries || entries.length === 0 || pathname === "/compare") return null;
-
-  const ordered = slugs
-    .map((slug) => products.find((p) => p.slug === slug))
-    .filter((p): p is MiniProduct => p !== undefined);
-  const canCompare = entries.length >= MIN_COMPARE;
+  if (!items || items.length === 0) return null;
+  if (HIDDEN_ON.includes(pathname) || pathname.startsWith("/order/")) return null;
+  const ready = items.length >= MIN_COMPARE;
 
   return (
     <>
-      {/* Keeps the fixed bar from covering the end of the page. */}
-      <div aria-hidden="true" className="h-[104px] sm:h-[96px]" />
-
+      <div aria-hidden="true" className="h-28" />
       <section
-        aria-label="Product comparison"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border-strong bg-surface shadow-[0_-2px_12px_rgba(15,17,17,0.12)]"
+        aria-label="Comparison shortlist"
+        className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-2xl sm:inset-x-6"
       >
-        <div className="mx-auto flex max-w-[1500px] items-center gap-3 px-3 py-2.5 sm:px-4">
-          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
-            {Array.from({ length: MAX_COMPARE }).map((_, i) => {
-              const product = ordered[i];
-              if (!product) {
-                return (
-                  <div
-                    key={`empty-${i}`}
-                    aria-hidden="true"
-                    className="hidden size-14 shrink-0 rounded border border-dashed border-border-subtle sm:block"
-                  />
-                );
-              }
-              return (
-                <div
-                  key={product.slug}
-                  className="relative size-14 shrink-0 rounded border border-border-subtle bg-surface-image"
+        <div className="glass-strong glow flex items-center gap-3 p-2.5 pl-3">
+          <ul className="flex min-w-0 flex-1 items-center gap-2">
+            {items.map((item) => (
+              <li key={item.slug} className="relative shrink-0">
+                <RemoteImage src={item.imageUrl} alt={item.title} sizes="48px" className="size-12" padding="p-1" />
+                <button
+                  type="button"
+                  onClick={() => remove(item.slug)}
+                  className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-line-strong bg-graphite-800 text-fg-muted hover:text-fg"
                 >
-                  <Image
-                    src={product.imageSrc}
-                    alt={product.imageAlt}
-                    fill
-                    sizes="56px"
-                    className="object-contain p-0.5"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => remove(product.slug)}
-                    aria-label={`Remove ${product.title} from comparison`}
-                    className="absolute -right-1.5 -top-1.5 rounded-full border border-border-strong bg-surface p-0.5 text-ink-muted hover:text-ink"
-                  >
-                    <CloseIcon size={11} />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <p className="text-xs text-ink-muted">
-              {entries.length} of {MAX_COMPARE} selected
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={clear}
-                className="rounded-full border border-border-strong bg-surface px-3 py-1.5 text-xs font-medium hover:bg-surface-muted"
-              >
-                Clear
-              </button>
-              {canCompare ? (
-                <Link
-                  href={compareHref(slugs.map((slug) => ({ slug })))}
-                  className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-ink hover:bg-accent-hover"
-                >
-                  Compare
-                </Link>
-              ) : (
-                <span
-                  className="cursor-not-allowed rounded-full bg-surface-muted px-4 py-1.5 text-sm font-semibold text-ink-muted"
-                  title={`Select at least ${MIN_COMPARE} products`}
-                >
-                  Compare
-                </span>
-              )}
-            </div>
+                  <CloseIcon size={11} />
+                  <span className="sr-only">Remove {item.title} from comparison</span>
+                </button>
+              </li>
+            ))}
+            {Array.from({ length: MAX_COMPARE - items.length }).map((_, i) => (
+              <li
+                key={`slot-${i}`}
+                aria-hidden="true"
+                className="hidden size-12 shrink-0 rounded-2xl border border-dashed border-line-strong sm:block"
+              />
+            ))}
+          </ul>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={clear} className="btn btn-ghost btn-sm">
+              Clear
+            </button>
+            {ready ? (
+              <Link href="/compare" className="btn btn-primary btn-sm">
+                Compare {items.length}
+                <ArrowRightIcon size={15} />
+              </Link>
+            ) : (
+              <span className="px-2 text-xs text-fg-muted">Add one more to compare</span>
+            )}
           </div>
         </div>
-        {!canCompare && (
-          <p className="px-3 pb-2 text-center text-[11px] text-ink-muted sm:px-4">
-            Add one more product to compare.
-          </p>
-        )}
       </section>
     </>
   );

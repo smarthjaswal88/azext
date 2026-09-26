@@ -3,6 +3,13 @@ import { comparisonGroupOf, sharedComparisonGroup } from "@/lib/comparison-group
 import { imagesForColor } from "@/lib/product";
 import { getProductsBySlugs } from "@/server/catalog";
 
+/**
+ * LEGACY. Serves the retired static demo catalog (src/server/catalog.ts) and is
+ * not used by the Nexus interface, whose compare tray and board read the live
+ * Supabase catalog through /api/catalog/*. Kept so the route keeps answering;
+ * safe to delete together with the static catalog once nothing depends on it.
+ */
+
 /** Minimal records for the comparison tray: enough to draw a thumbnail and a
  *  name, nothing more. The tray stores only slugs, so titles and images are
  *  resolved here rather than kept in browser storage where they could go

@@ -53,27 +53,54 @@ const postOrder = (items, idempotencyKey) =>
     body: JSON.stringify({ items, idempotencyKey }),
   });
 
-const ITEMS_A = [
-  { variantId: "cl-fieldhouse-tee-black-m", quantity: 2 },
-  { variantId: "hp-verso-compact-navy", quantity: 1 },
-];
-const ITEMS_B = [{ variantId: "hp-aureal-h9-midnight", quantity: 1 }];
+/**
+ * One purchasable option each from clothing and headphones, read from the
+ * live catalog API, with the prices the server will charge. The expected
+ * totals therefore come from the same catalog the order route prices from.
+ */
+async function pickVariant(category) {
+  const list = await (await fetch(`${BASE}/api/catalog/products?category=${category}&limit=1`)).json();
+  const slug = list.products?.[0]?.slug;
+  if (!slug) throw new Error(`No ${category} products in the live catalog.`);
+  const { product } = await (await fetch(`${BASE}/api/catalog/products/${slug}`)).json();
+  const variant =
+    product.variants.find((v) => v.isDefault && v.priceCents !== null) ??
+    product.variants.find((v) => v.priceCents !== null);
+  if (!variant) throw new Error(`${slug} has no priced option.`);
+  return variant;
+}
 
-// Expected from the catalog: 2 x 3200 + 1 x 7900.
-const EXPECTED_SUBTOTAL = 2 * 3200 + 7900;
+const usd = (cents) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+
+let ITEMS_A;
+let ITEMS_B;
+let EXPECTED_SUBTOTAL;
+let CLOTHING_ID;
 
 async function main() {
+  const clothing = await pickVariant("clothing");
+  const headphones = await pickVariant("headphones");
+  CLOTHING_ID = clothing.id;
+  ITEMS_A = [
+    { variantId: clothing.id, quantity: 2 },
+    { variantId: headphones.id, quantity: 1 },
+  ];
+  // Different contents under the same key, for the conflict check.
+  ITEMS_B = [{ variantId: headphones.id, quantity: 1 }];
+  EXPECTED_SUBTOTAL = 2 * clothing.priceCents + headphones.priceCents;
+
   const probe = await postOrder(ITEMS_A, `probe-${crypto.randomUUID()}`);
   if (probe.status === 503) {
     console.log("\nBLOCKED: Supabase is not configured, so the order flow cannot be tested.");
-    console.log("Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, apply");
+    console.log("Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY, apply");
     console.log("supabase/migrations/, restart the server, and run this again.\n");
     process.exit(2);
   }
 
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { persistSession: false } },
   );
 
@@ -104,7 +131,7 @@ async function main() {
     row?.total_cents === row?.subtotal_cents + row?.shipping_cents,
   );
   check("persisted both items", row?.order_items?.length === 2, `got ${row?.order_items?.length}`);
-  const tee = row?.order_items?.find((i) => i.variant_id === "cl-fieldhouse-tee-black-m");
+  const tee = row?.order_items?.find((i) => i.variant_id === CLOTHING_ID);
   check(
     "line total = unit price x quantity",
     tee?.line_total_cents === tee?.unit_price_cents * tee?.quantity,
@@ -115,7 +142,7 @@ async function main() {
   const first = await fetch(`${BASE}/order/${created.confirmationToken}`);
   const firstHtml = await first.text();
   check("confirmation page returns 200", first.status === 200, `got ${first.status}`);
-  check("shows the order total", firstHtml.includes("142.00"));
+  check("shows the order total", firstHtml.includes(usd(row?.total_cents ?? EXPECTED_SUBTOTAL)));
   const second = await fetch(`${BASE}/order/${created.confirmationToken}`, { cache: "no-store" });
   const secondHtml = await second.text();
   check("still 200 on a second load (refresh)", second.status === 200);

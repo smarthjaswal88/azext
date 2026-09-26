@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -8,6 +7,8 @@ import type { CartItem } from "@/lib/cart";
 import { useCartItems, useCartStore } from "@/lib/cart-store";
 import { formatPrice } from "@/lib/format";
 import { useCartSummary } from "@/lib/use-cart-summary";
+import { RemoteImage } from "./remote-image";
+import { DemoNotice, Skeleton, StatePanel } from "./ui";
 
 interface Delivery {
   name: string;
@@ -36,7 +37,7 @@ export function CheckoutView({
   storageReady,
   delivery,
 }: {
-  /** Set for Buy now. When present the cart is ignored entirely. */
+  /** Set for a direct checkout of one item. When present the cart is ignored. */
   directItem?: CartItem;
   storageReady: boolean;
   delivery: Delivery;
@@ -46,15 +47,14 @@ export function CheckoutView({
   const removeItems = useCartStore((s) => s.removeItems);
 
   const isDirect = directItem !== undefined;
-  // Buy now needs nothing from localStorage, so it is ready immediately.
   const ready = isDirect || storedItems !== undefined;
   const items = isDirect ? [directItem] : (storedItems ?? []);
 
   const { data, error, loading, reload } = useCartSummary(items, ready);
   const [submission, setSubmission] = useState<Submission>({ state: "idle" });
 
-  // One key for this checkout attempt, kept stable across retries. That is the
-  // whole point: retrying after a timeout must not create a second order.
+  // One key for this checkout attempt, kept stable across retries, so retrying
+  // after a timeout can never create a second order.
   const idempotencyKey = useRef<string>("");
   useEffect(() => {
     if (!idempotencyKey.current) idempotencyKey.current = crypto.randomUUID();
@@ -78,12 +78,10 @@ export function CheckoutView({
 
       if (!response.ok) {
         if (payload.error === "idempotency_key_conflict") {
-          // This attempt's key was already used for different contents. Retrying
-          // cannot help and must not silently surface that other order.
           setSubmission({
             state: "failed",
             message:
-              "Your basket changed after this checkout was opened. Start a fresh order to continue — nothing has been placed.",
+              "Your cart changed after this checkout was opened. Start a fresh demo order to continue — nothing has been placed.",
             retryable: false,
             recoverable: true,
           });
@@ -91,22 +89,16 @@ export function CheckoutView({
         }
         const message =
           payload.error === "storage_unconfigured"
-            ? "Orders cannot be placed right now."
+            ? "Demo orders cannot be placed right now."
             : payload.error === "nothing_purchasable"
-              ? "Nothing in this order can be bought right now."
-              : (payload.message ?? `Order failed (${response.status}).`);
-        setSubmission({
-          state: "failed",
-          message,
-          retryable: response.status >= 500 || response.status === 503,
-        });
+              ? "Nothing in this order can be ordered right now."
+              : (payload.message ?? `The demo order failed (${response.status}).`);
+        setSubmission({ state: "failed", message, retryable: response.status >= 500 });
         return;
       }
 
-      // Only now is anything removed from the cart, and only what was bought.
-      if (!isDirect && payload.purchasedVariantIds) {
-        removeItems(payload.purchasedVariantIds);
-      }
+      // Only now is anything removed from the cart, and only what was ordered.
+      if (!isDirect && payload.purchasedVariantIds) removeItems(payload.purchasedVariantIds);
       router.push(`/order/${payload.confirmationToken}`);
     } catch (cause) {
       setSubmission({
@@ -117,56 +109,84 @@ export function CheckoutView({
     }
   }
 
-  if (!ready) return <p className="rounded-lg border border-border-subtle bg-surface py-16 text-center text-ink-muted">Loading…</p>;
-
-  if (error) {
+  if (!ready || (!data && !error)) {
     return (
-      <div className="rounded-lg border border-border-subtle bg-surface p-8 text-center">
-        <p className="font-medium text-sale">We could not price this order.</p>
-        <p className="mt-1 text-sm text-ink-muted">{error}</p>
-        <button
-          type="button"
-          onClick={reload}
-          className="mt-4 rounded-md border border-border-subtle px-4 py-2 text-sm font-medium hover:bg-surface-muted"
-        >
-          Try again
-        </button>
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]" aria-busy="true">
+        <p role="status" className="sr-only">
+          Pricing your demo order
+        </p>
+        <Skeleton className="h-72 rounded-[1.25rem]" />
+        <Skeleton className="h-72 rounded-[1.25rem]" />
       </div>
     );
   }
 
-  if (!data) return <p className="rounded-lg border border-border-subtle bg-surface py-16 text-center text-ink-muted">Pricing…</p>;
-
-  const purchasable = data.lines.filter((l) => l.available);
-
-  if (purchasable.length === 0) {
+  if (error || !data) {
     return (
-      <div className="rounded-lg border border-border-subtle bg-surface p-12 text-center">
-        <h2 className="text-lg font-medium">Nothing here can be bought</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
-          {items.length === 0
-            ? "Your cart is empty."
-            : "Everything in this order is out of stock or no longer in the catalog."}
-        </p>
-        <Link
-          href="/cart"
-          className="mt-5 inline-block rounded-md border border-border-subtle px-4 py-2 text-sm font-medium hover:bg-surface-muted"
-        >
-          Back to cart
-        </Link>
-      </div>
+      <StatePanel
+        tone="error"
+        title="This demo order could not be priced"
+        action={
+          <button type="button" onClick={reload} className="btn btn-secondary">
+            Try again
+          </button>
+        }
+      >
+        {error}
+      </StatePanel>
+    );
+  }
+
+  const orderable = data.lines.filter((l) => l.available);
+
+  if (orderable.length === 0) {
+    return (
+      <StatePanel
+        title="Nothing here can be ordered"
+        action={
+          <Link href="/cart" className="btn btn-secondary">
+            Back to demo cart
+          </Link>
+        }
+      >
+        {items.length === 0
+          ? "Your demo cart is empty."
+          : "Every option in this order is unpriced, out of stock or no longer in the catalog."}
+      </StatePanel>
     );
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
+    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
       <div className="space-y-6">
-        <section className="rounded-lg border border-border-subtle bg-surface p-4">
-          <h2 className="text-base font-semibold">Delivery</h2>
-          <p className="mt-1 text-xs text-ink-muted">
-            Fixed demo details. No form collects anything about you, and nothing ships.
+        <section aria-labelledby="items-heading" className="glass p-5">
+          <h2 id="items-heading" className="text-base font-semibold text-fg">
+            {isDirect ? "Ordering now" : "Items"} ({orderable.length})
+          </h2>
+          <ul className="mt-3 divide-y divide-line">
+            {orderable.map((line) => (
+              <li key={line.variantId} className="flex items-center gap-4 py-3">
+                <RemoteImage src={line.imageSrc || null} alt={line.imageAlt} sizes="64px" className="size-16 shrink-0" padding="p-1.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 text-sm font-medium text-fg">{line.title}</p>
+                  <p className="text-xs text-fg-subtle">
+                    {line.optionsLabel ? `${line.optionsLabel} · ` : ""}Qty {line.quantity}
+                  </p>
+                </div>
+                <p className="shrink-0 text-sm font-semibold tabular-nums text-fg">{formatPrice(line.lineTotalCents)}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="delivery-heading" className="glass p-5">
+          <h2 id="delivery-heading" className="text-base font-semibold text-fg">
+            Delivery
+          </h2>
+          <p className="mt-1 text-xs text-fg-subtle">
+            Fixed demo details. Nothing about you is collected, and nothing ships.
           </p>
-          <address className="mt-3 text-sm not-italic leading-relaxed">
+          <address className="mt-3 text-sm not-italic leading-relaxed text-fg-muted">
             {delivery.name}
             <br />
             {delivery.line1}
@@ -177,67 +197,37 @@ export function CheckoutView({
             <br />
             {delivery.country}
           </address>
-          <p className="mt-3 text-sm text-ink-muted">{delivery.method}</p>
+          <p className="mt-3 text-sm text-fg-subtle">{delivery.method}</p>
         </section>
 
-        <section className="rounded-lg border border-border-subtle bg-surface p-4">
-          <h2 className="text-base font-semibold">Payment</h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            None. This is a simulated checkout — there is no payment provider, no card form and
-            no charge. &ldquo;Place demo order&rdquo; writes an order record and nothing else.
-          </p>
-        </section>
-
-        <section className="rounded-lg border border-border-subtle bg-surface p-4">
-          <h2 className="mb-2 text-base font-semibold">
-            {isDirect ? "Buying now" : "Items"} ({purchasable.length})
+        <section aria-labelledby="payment-heading" className="glass p-5">
+          <h2 id="payment-heading" className="text-base font-semibold text-fg">
+            Payment
           </h2>
-          <ul className="divide-y divide-border-subtle border-t border-border-subtle">
-            {purchasable.map((line) => (
-              <li key={line.variantId} className="flex items-center gap-4 py-3">
-                <div className="relative size-16 shrink-0 overflow-hidden rounded border border-border-subtle bg-surface-image">
-                  <Image
-                    src={line.imageSrc}
-                    alt={line.imageAlt}
-                    fill
-                    sizes="64px"
-                    className="object-contain p-1"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-sm font-medium">{line.title}</p>
-                  <p className="text-xs text-ink-muted">
-                    {line.optionsLabel} · Qty {line.quantity}
-                  </p>
-                </div>
-                <p className="shrink-0 text-sm font-semibold">
-                  {formatPrice(line.lineTotalCents)}
-                </p>
-              </li>
-            ))}
-          </ul>
+          <p className="mt-1 text-sm text-fg-muted">
+            None. There is no payment provider, no card form and no charge. &ldquo;Place demo
+            order&rdquo; writes a demo order record and nothing else.
+          </p>
         </section>
       </div>
 
-      <aside className="lg:sticky lg:top-36 lg:self-start">
-        <div className="rounded-lg border border-border-subtle bg-surface p-4 shadow-sm">
-          <h2 className="text-base font-semibold">Order summary</h2>
-          <dl className="mt-3 space-y-2 text-sm">
+      <aside className="lg:sticky lg:top-24 lg:self-start">
+        <div className="glass-strong p-5">
+          <h2 className="text-base font-semibold text-fg">Demo order summary</h2>
+          <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <dt className="text-ink-muted">
+              <dt className="text-fg-muted">
                 Subtotal ({data.itemCount} {data.itemCount === 1 ? "item" : "items"})
               </dt>
-              <dd className="font-medium">{formatPrice(data.subtotalCents)}</dd>
+              <dd className="tabular-nums text-fg">{formatPrice(data.subtotalCents)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-ink-muted">Delivery</dt>
-              <dd className="font-medium">
-                {data.shippingCents === 0 ? "Free" : formatPrice(data.shippingCents)}
-              </dd>
+              <dt className="text-fg-muted">Delivery</dt>
+              <dd className="text-fg">{data.shippingCents === 0 ? "None — demo" : formatPrice(data.shippingCents)}</dd>
             </div>
-            <div className="flex justify-between border-t border-border-subtle pt-2 text-base">
-              <dt className="font-semibold">Total</dt>
-              <dd className="font-bold">{formatPrice(data.totalCents)}</dd>
+            <div className="flex justify-between border-t border-line pt-3 text-base">
+              <dt className="font-semibold text-fg">Total</dt>
+              <dd className="font-semibold tabular-nums text-fg">{formatPrice(data.totalCents)}</dd>
             </div>
           </dl>
 
@@ -246,34 +236,27 @@ export function CheckoutView({
               type="button"
               onClick={() => void placeOrder()}
               disabled={submission.state === "submitting" || loading}
-              className="mt-4 w-full rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink shadow-sm hover:bg-accent-hover disabled:opacity-60"
+              className="btn btn-primary btn-block mt-5"
             >
-              {submission.state === "submitting" ? "Placing order…" : "Place demo order"}
+              {submission.state === "submitting" ? "Placing demo order…" : "Place demo order"}
             </button>
           ) : (
-            <div className="mt-4 rounded-md border border-sale/40 bg-surface-muted p-3">
-              <p className="text-sm font-semibold text-sale">Checkout is unavailable</p>
-              <p className="mt-1 text-xs text-ink-muted">
-                Orders cannot be placed right now. Your cart is unaffected.
-              </p>
+            <div className="mt-5 rounded-2xl border border-negative/30 bg-negative/10 p-3">
+              <p className="text-sm font-semibold text-negative">Demo checkout is unavailable</p>
+              <p className="mt-1 text-xs text-fg-muted">Orders cannot be placed right now. Your cart is unaffected.</p>
             </div>
           )}
 
           {submission.state === "failed" && (
-            <div className="mt-3 rounded-md border border-sale/40 p-3">
-              <p className="text-sm font-medium text-sale">{submission.message}</p>
+            <div role="alert" className="mt-3 rounded-2xl border border-negative/30 bg-negative/10 p-3">
+              <p className="text-sm font-medium text-negative">{submission.message}</p>
               {submission.retryable && (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => void placeOrder()}
-                    className="mt-2 rounded-md border border-border-subtle px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
-                  >
+                  <button type="button" onClick={() => void placeOrder()} className="btn btn-secondary btn-sm mt-2">
                     Try again
                   </button>
-                  <p className="mt-2 text-xs text-ink-muted">
-                    Retrying is safe — it reuses the same order key, so it cannot create a second
-                    order.
+                  <p className="mt-2 text-xs text-fg-subtle">
+                    Retrying is safe — it reuses the same order key, so it cannot create a second order.
                   </p>
                 </>
               )}
@@ -284,17 +267,16 @@ export function CheckoutView({
                     idempotencyKey.current = crypto.randomUUID();
                     setSubmission({ state: "idle" });
                   }}
-                  className="mt-2 rounded-md border border-border-subtle px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
+                  className="btn btn-secondary btn-sm mt-2"
                 >
-                  Start a fresh order
+                  Start a fresh demo order
                 </button>
               )}
             </div>
           )}
 
-          <p className="mt-3 text-xs text-ink-muted">
-            Totals are recalculated on the server before the order is written.
-          </p>
+          <p className="mt-4 text-xs text-fg-subtle">Totals are recalculated on the server before the order is written.</p>
+          <DemoNotice className="mt-4 border-t border-line pt-4" />
         </div>
       </aside>
     </div>

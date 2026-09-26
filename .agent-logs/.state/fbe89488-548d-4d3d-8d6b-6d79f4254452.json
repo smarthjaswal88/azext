@@ -1,0 +1,12 @@
+{
+  "session_id": "fbe89488-548d-4d3d-8d6b-6d79f4254452",
+  "date": "2026-09-25",
+  "file": "2026-09-25_18-34-45_fbe89488-548d-4d3d-8d6b-6d79f4254452.md",
+  "n": 2,
+  "first_prompt_time": "2026-09-25T18:34:45.525Z",
+  "last_prompt_time": "2026-09-25T18:35:28.854Z",
+  "model": "claude-opus-5-5",
+  "last_logged_uuid": "309c14e9-91fe-40b6-be8b-eca6ce70c98f",
+  "awaiting_response": false,
+  "last_source": "payload"
+}
